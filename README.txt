@@ -3,7 +3,13 @@
 ################################################################################
 
 ACADEMIC USE ONLY. This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY
+but WITHOUT ANY WARRANTY
+
+xgBoost based Interface Prediction of Specific Partner Interactions (BIPSPI) is a new method for 
+the prediction of partner-specific protein interfaces from pdb files or input sequences. 
+BIPSPI employs Extreme Gradient Boosting (XGBoost) models trained on the residue pairs of the protein complexes 
+compiled in Protein-Protein Docking Benchmark version 5 and an scoring function that converts pair prediction 
+to interface residue predictions. contact: rsanchez@cnb.csic.es; jsegura@cnb.csic.es
 
 CONTENT:
   1) Installation
@@ -19,6 +25,7 @@ BIPSPI make use of several bioinformatics tool that are distributed within its d
 if this docker is used. You only have to compile an uniref90 sequence database for psiblast and, optionally,
 a uniclust30 database for hhblits if you want to use correlated mutations. Path to these databases must be
 indicated in ./configFiles/configFile.cfg
+
 
 By using BIPSPI you are accepting the Terms and Conditions of the licenses of the following packages:
 
@@ -39,175 +46,82 @@ By using BIPSPI you are accepting the Terms and Conditions of the licenses of th
 - Anaconda 5.0.1 (https://anaconda.org/)
 
 - Python packages (as reported by Anaconda):
-  channels:
-    - https://conda.binstar.org/travis
-    - kalefranz
-    - samoturk
-    - conda-forge
-    - bioconda
-    - anaconda
-    - defaults
-  dependencies:
-    - alabaster=0.7.10=py27_0
-    - astroid=1.4.9=py27_0
-    - babel=2.3.4=py27_0
-    - backports=1.0=py27_0
-    - backports_abc=0.5=py27_0
-    - bleach=1.5.0=py27_0
-    - cairo=1.14.8=0
-    - chardet=2.3.0=py27_0
-    - configparser=3.5.0=py27_0
-    - cycler=0.10.0=py27_0
-    - cython=0.26=py27_0
-    - dbus=1.10.10=0
-    - decorator=4.0.11=py27_0
-    - docutils=0.13.1=py27_0
-    - entrypoints=0.2.2=py27_1
-    - enum34=1.1.6=py27_0
-    - expat=2.1.0=0
-    - fontconfig=2.12.1=3
-    - freetype=2.5.5=2
-    - funcsigs=1.0.2=py27_0
-    - functools32=3.2.3.2=py27_0
-    - get_terminal_size=1.0.0=py27_0
-    - glib=2.50.2=1
-    - gst-plugins-base=1.8.0=0
-    - gstreamer=1.8.0=0
-    - html5lib=0.999=py27_0
-    - icu=54.1=0
-    - imagesize=0.7.1=py27_0
-    - ipykernel=4.5.2=py27_0
-    - isort=4.2.5=py27_0
-    - jbig=2.1=0
-    - jedi=0.9.0=py27_1
-    - jinja2=2.9.5=py27_0
-    - joblib=0.11=py27_0
-    - jpeg=8d=2
-    - jsonschema=2.5.1=py27_0
-    - lazy-object-proxy=1.2.2=py27_0
-    - lcms=1.19=0
-    - libffi=3.2.1=1
-    - libgcc=5.2.0=0
-    - libgfortran=3.0.0=1
-    - libiconv=1.14=0
-    - libpng=1.6.27=0
-    - libsodium=1.0.10=0
-    - libtiff=4.0.6=2
-    - libxcb=1.12=1
-    - libxml2=2.9.4=0
-    - llvmlite=0.19.0=py27_0
-    - markupsafe=0.23=py27_2
-    - matplotlib=2.0.0=np112py27_0
-    - mistune=0.7.3=py27_0
-    - mkl=2017.0.1=0
-    - msgpack-python=0.4.8=py27_0
-    - nbconvert=5.1.1=py27_0
-    - nbformat=4.3.0=py27_0
-    - numba=0.34.0=np112py27_0
-    - numpydoc=0.6.0=py27_0
-    - openssl=1.0.2k=0
-    - pandocfilters=1.4.1=py27_0
-    - path.py=10.1=py27_0
-    - pathlib2=2.2.0=py27_0
-    - patsy=0.4.1=py27_0
-    - pcre=8.39=1
-    - pep8=1.7.0=py27_0
-    - pexpect=4.2.1=py27_0
-    - pickleshare=0.7.4=py27_0
-    - pil=1.1.7=py27_2
-    - pillow=3.2.0=py27_0
-    - pip=9.0.1=py27_1
-    - pixman=0.34.0=0
-    - prompt_toolkit=1.0.9=py27_0
-    - psutil=5.2.0=py27_0
-    - ptyprocess=0.5.1=py27_0
-    - pycairo=1.10.0=py27_0
-    - pyflakes=1.5.0=py27_0
-    - pygments=2.2.0=py27_0
-    - pylint=1.6.4=py27_1
-    - pyparsing=2.1.4=py27_0
-    - pyqt=5.6.0=py27_2
-    - python=2.7.13=0
-    - python-dateutil=2.6.0=py27_0
-    - pytz=2016.10=py27_0
-    - pyzmq=16.0.2=py27_0
-    - qt=5.6.2=2
-    - qtawesome=0.4.4=py27_0
-    - qtconsole=4.2.1=py27_1
-    - qtpy=1.2.1=py27_0
-    - readline=6.2=2
-    - reportlab=3.4.0=py27_0
-    - requests=2.13.0=py27_0
-    - rope=0.9.4=py27_1
-    - scandir=1.5=py27_0
-    - setuptools=27.2.0=py27_0
-    - simplegeneric=0.8.1=py27_1
-    - simplejson=3.11.1=py27_0
-    - singledispatch=3.4.0.3=py27_0
-    - sip=4.18=py27_0
-    - six=1.10.0=py27_0
-    - snowballstemmer=1.2.1=py27_0
-    - sphinx=1.5.1=py27_0
-    - spyder=3.1.3=py27_0
-    - sqlalchemy=1.1.13=py27_0
-    - sqlite=3.13.0=0
-    - ssl_match_hostname=3.4.0.2=py27_1
-    - statsmodels=0.8.0=np112py27_0
-    - subprocess32=3.2.7=py27_0
-    - testpath=0.3=py27_0
-    - tk=8.5.18=0
-    - tornado=4.4.2=py27_0
-    - traitlets=4.3.2=py27_0
-    - wcwidth=0.1.7=py27_0
-    - wget=1.18=0
-    - wheel=0.29.0=py27_0
-    - wrapt=1.10.8=py27_0
-    - xlrd=1.1.0=py27_0
-    - xz=5.2.2=0
-    - zeromq=4.1.5=0
-    - zlib=1.2.8=3
-    - biopython=1.70=np112py27_0
-    - mmtf-python=1.0.2=py27_0
-    - amqp=2.1.4=py27_0
-    - anyjson=0.3.3=py27_1
-    - billiard=3.5.0.2=py27_0
-    - blas=1.1=openblas
-    - h5py=2.7.0=np112py27_1
-    - hdf5=1.8.18=0
-    - kombu=4.1.0=py27_0
-    - numpy=1.12.1=py27_blas_openblas_200
-    - openblas=0.2.19=2
-    - pandas=0.21.0=py27_0
-    - scikit-learn=0.19.1=py27_blas_openblas_200
-    - scipy=0.19.1=py27_blas_openblas_202
-    - vine=1.1.4=py27_0
-    - xgboost=0.6a2=py27_2
-    - uwsgi=2.0.2=py27_0
-    - httpd=2.2.29=6
-    - freeglut=3.0.0=4
-    - glew=2.0.0=0
-    - pmw=2.0.0=py27_1
-    - pymol=1.8.6.0=py27_0
-    - pip:
-      - backports-abc==0.5
-      - backports.shutil-get-terminal-size==1.0.0
-      - backports.ssl-match-hostname==3.4.0.2
-      - boto==2.46.1
-      - bs4==0.0.1
-      - bz2file==0.98
-      - gensim==2.0.0
-      - gputil==1.3.0
-      - httplib2==0.9.2
-      - mock==2.0.0
-      - olefile==0.44
-      - pbr==1.10.0
-      - prompt-toolkit==1.0.7
-      - protobuf==3.2.0
-      - smart-open==1.5.2
+    name: xgbpred
+    channels:
+      - bioconda
+      - conda-forge
+      - anaconda
+      - defaults
+    dependencies:
+      - enum34=1.1.6=py27h99a27e9_1
+      - freetype=2.8=hab7d2ae_1
+      - funcsigs=1.0.2=py27h83f16ab_0
+      - joblib=0.11=py27_0
+      - jpeg=9b=h024ee3a_2
+      - libgcc-ng=7.2.0=hdf63c60_3
+      - libgfortran=3.0.0=1
+      - libpng=1.6.34=hb9fc6fc_0
+      - libstdcxx-ng=7.2.0=hdf63c60_3
+      - libtiff=4.0.9=he85c1e1_1
+      - llvmlite=0.19.0=py27_0
+      - msgpack-python=0.5.6=py27h6bb024c_0
+      - numba=0.34.0=np112py27_0
+      - olefile=0.45.1=py27_0
+      - openblas=0.2.19=0
+      - pillow=4.2.1=py27h7cd2321_0
+      - pip=9.0.1=py27_1
+      - python=2.7.13=0
+      - python-dateutil=2.7.3=py27_0
+      - pytz=2018.4=py27_0
+      - readline=6.2=2
+      - reportlab=3.4.0=py27_0
+      - setuptools=39.1.0=py27_0
+      - simplejson=3.11.1=py27_0
+      - singledispatch=3.4.0.3=py27h9bcb476_0
+      - six=1.10.0=py27_0
+      - sqlite=3.13.0=0
+      - tk=8.5.18=0
+      - wget=1.18=0
+      - wheel=0.31.1=py27_0
+      - xz=5.2.4=h14c3975_4
+      - zlib=1.2.11=ha838bed_2
+      - biopython=1.70=np112py27_0
+      - mmtf-python=1.0.2=py27_0
+      - blas=1.1=openblas
+      - numpy=1.12.1=py27_blas_openblas_200
+      - pandas=0.21.0=py27_0
+      - scikit-learn=0.19.1=py27_blas_openblas_200
+      - scipy=0.19.1=py27_blas_openblas_202
+      - xgboost=0.6a2=py27_2
+      - asn1crypto=0.24.0=py27_0
+      - ca-certificates=2018.03.07=0
+      - certifi=2018.4.16=py27_0
+      - cffi=1.11.5=py27h9745a5d_0
+      - chardet=3.0.4=py27hfa10054_1
+      - cryptography=2.2.2=py27h14c3975_0
+      - idna=2.6=py27h5722d68_1
+      - ipaddress=1.0.22=py27_0
+      - libffi=3.2.1=hd88cf55_4
+      - openssl=1.0.2o=h20670df_0
+      - pycparser=2.18=py27hefa08c5_1
+      - pyopenssl=18.0.0=py27_0
+      - pysocks=1.6.8=py27_0
+      - requests=2.18.4=py27hc5b0589_1
+      - urllib3=1.22=py27ha55213b_0
+      - pip:
+        - bz2file==0.98
+        - gputil==1.3.0
+    prefix: /services/xgbpred/app/miniconda2/envs/xgbpred
+
 
 Otherwise, you should install all them manually and edit
 ./configFiles/configFile.cfg file consequently to point to installation location
   
+  
+To compile uniref90 blastDb you can use the following comands
+  wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
+  gunzip -v uniref90.fasta.gz
+  makeblastdb -in uniref90.fasta -dbtype prot -out uniref90.fasta -hash_index
   
 -------------------------
 - 2. Use                -
