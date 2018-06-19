@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 import sys, os
 from subprocess import Popen, PIPE, check_output
+from Bio.PDB.Polypeptide import aa1 as AA_STANDARD
 from ..seqToolManager import seqToolManager, FeatureComputerException
 from utils import myMakeDir, tryToRemove #utils is at the root of the package
 
@@ -68,9 +69,7 @@ class Al2coManager(seqToolManager):
       return 0
     print("lauching al2co over %s"%prefixExtended)      
     al2coRawName, al2coProcName= self.getFNames(prefixExtended)["al2co"]
-#    print(" ".join(["perl", self.al2coPerlScript, fastaFname, self.al2coRootDir,
-#                    psiblastOutName, pssmOutNameRaw,
-#                    self.al2coOutPath]))
+
     process= Popen(["perl", self.al2coPerlScript, fastaFname, self.al2coRootDir,
                     psiblastOutName, pssmOutNameRaw,
                     self.al2coOutPath], stdout=PIPE, stderr=PIPE)
@@ -113,23 +112,16 @@ class Al2coManager(seqToolManager):
            outFile.write("%s %d %s %s %s\n"%(chainId, seqIx, structIndex, letter, consVal))
            alcoIx+=1
            seqIx+=1
-        elif letter=="X" and letterAl2co=="-":
+        elif not letter in AA_STANDARD and letterAl2co=="-":
            alcoIx+=1
            seqIx+=1
         elif letterAl2co=="-":
           alcoIx+=1
         else:
           print(conserData)
-	  print(seq)
+          print(seq)
           print(alcoIx, seqIx)
           raise ValueError("Al2co mismatch %s %s "%(letterAl2co, letter))
-#      for i, (letter, (consVal,letterAl2co)) in enumerate(zip(seq, conserData)):
-#        if letter!="X" and  letterAl2co!= letter: continue
-#        structIndex= self.seqsManager.seqToStructIndex(chainType, chainId, i, asString= True)
-#        if self.filterOutLabels and structIndex[-1].isalpha():
-#          continue
-#        outFile.write("%s %d %s %s %s\n"%(chainId, i, structIndex, letter, consVal))
-
       outFile.close()
     except (KeyboardInterrupt, Exception):
       print("Exception happend computing %s"%al2coProc)
@@ -153,7 +145,4 @@ class Al2coManager(seqToolManager):
         conserv.append(lineArray[1:3])
       else:
         break
-#    if "1j34" in filename:
-#      print(filename)
-#      raw_input("press enter")
     return conserv     
