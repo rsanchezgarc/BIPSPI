@@ -102,7 +102,7 @@ class SeqsManager(SeqFeatComputer):
       resList= [ res for res in sorted(chain.child_list, key=lambda x: x.get_id()[1:]) if is_aa(res, standard=False)] #New version feature
       nResAll= len(resList)
 #      print(chainId, len(resList))
-      if nResStandard< int(0.5 * nResAll): continue #skip if most residues are not standard
+      if nResStandard<= int(0.5 * nResAll): continue #skip if most residues are not standard
       if len(resList)> SMALL_CHAINS_LIMIT: #Too small chains will not be considered
         sequence=[]
         resIds=[]

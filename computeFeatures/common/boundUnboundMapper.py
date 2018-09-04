@@ -104,7 +104,10 @@ class BoundUnboundMapper(object):
       aligU2BTable.append([])
       aligU2BScores.append([])
       for nSeqBound,seqBound in enumerate(self.sequencesBound):
-        seqUnboundAli, seqBoundAli, SeqAligScore = self._alig_seq(seqUnbound, seqBound)
+        try:
+          seqUnboundAli, seqBoundAli, SeqAligScore = self._alig_seq(seqUnbound, seqBound)
+        except IndexError:
+          continue
         aligScore, boundToUnboundDict= self.getRMSD(nSeqUnbound, seqUnboundAli, nSeqBound, seqBoundAli)
         aligU2BTable[-1].append( boundToUnboundDict )
         aligU2BScores[-1].append(aligScore)
