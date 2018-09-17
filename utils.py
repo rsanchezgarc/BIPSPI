@@ -91,3 +91,11 @@ def tryToSymlink( source, dest):
     os.symlink( source, dest)
   except (IOError, OSError):
     pass 
+
+def openForReadingFnameOrGz( fname):
+  if fname.endswith(".gz"):
+    return gzip.open(fname)  
+  elif os.path.isfile(fname+".gz"):
+    return gzip.open(fname+".gz")
+  else:
+    return open(fname)

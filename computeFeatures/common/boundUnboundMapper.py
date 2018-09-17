@@ -17,12 +17,23 @@ class BoundUnboundMapper(object):
     '''
     self.pp_list_unbound= pp_list_unbound
     self.pp_list_bound= pp_list_bound
-    self.sequencesUnbound= [ str(elem.get_sequence()).replace("-","") for elem in pp_list_unbound]
-    self.sequencesBound= [ str(elem.get_sequence()).replace("-","") for elem in pp_list_bound]
+
+    self.sequencesUnbound= self.retrieveSeqsFormPP_list( pp_list_unbound)
+    self.sequencesBound= self.retrieveSeqsFormPP_list( pp_list_bound)
 
     self.boundToUnboundDict= {}
     self.boundToUnboundDictFromChainResId= None
     self.unboundToBoundToDictFromChainResId= None
+
+  def retrieveSeqsFormPP_list(self, pp_list):
+    seqsList=[]
+    for pp in pp_list:
+#      print(pp, pp.get_sequence())
+      seq= str(pp.get_sequence()).replace("-","")
+      nXs= sum([1 for elem in seq if elem=="X"])
+      if nXs< len(seq)*0.5: #skip seq if contains more than 50% of non aminoacids
+        seqsList.append(seq)
+    return seqsList
 
   def build_correspondence(self):
     '''
@@ -30,14 +41,14 @@ class BoundUnboundMapper(object):
       To do so first computes _all_against_all_ali() and them matches chains that
       have the best structural aligment score. After that, residues of matches chains 
       are mapped thanks to a sequence alignment 
-    '''  
+    '''
     aligU2BDictsTable, aligU2BScores = self._all_against_all_alig()
     n2Take= max(aligU2BScores.shape)
     maxVal= np.max(aligU2BScores)+ 1e-4
     bestScore= np.min(aligU2BScores)
     bestScoreThr= max(10, bestScore)
 #    print(n2Take, bestScoreThr)
-#    print(aligU2BScores)    
+#    print(aligU2BScores); raw_input("enter")
     while n2Take>0 and bestScore<= bestScoreThr:
       argbest= np.where(aligU2BScores==bestScore)
       unboundInd= argbest[0][0]
@@ -64,7 +75,7 @@ class BoundUnboundMapper(object):
       @param seq_b: str. The alignment result for bound sequence number nSeqBound
       @return boundToUnboundResDict. {Bio.PDB.Residue_bound --> Bio.PDB.Residue_unbound}
       @return atomBoundToUnboundMap. {Bio.PDB.Atom_bound --> Bio.PDB.Atom_unbound} CA atoms    
-    '''    
+    '''
     pp_u= self.pp_list_unbound[nSeqUnbound]
     pp_b= self.pp_list_bound[nSeqBound]
     boundToUnboundResDict= {}
@@ -97,17 +108,14 @@ class BoundUnboundMapper(object):
                            chain_u_i with their equivalent residues chain_b_i
     @return aligU2BScores: nxm list of floats, being each element rmsd of structural aligment of
                            chain_u_i chain_b_i
-    '''     
+    '''
     aligU2BTable= []
     aligU2BScores=[]
     for nSeqUnbound, seqUnbound in enumerate(self.sequencesUnbound):
       aligU2BTable.append([])
       aligU2BScores.append([])
       for nSeqBound,seqBound in enumerate(self.sequencesBound):
-        try:
-          seqUnboundAli, seqBoundAli, SeqAligScore = self._alig_seq(seqUnbound, seqBound)
-        except IndexError:
-          continue
+        seqUnboundAli, seqBoundAli, SeqAligScore = self._alig_seq(seqUnbound, seqBound)
         aligScore, boundToUnboundDict= self.getRMSD(nSeqUnbound, seqUnboundAli, nSeqBound, seqBoundAli)
         aligU2BTable[-1].append( boundToUnboundDict )
         aligU2BScores[-1].append(aligScore)
@@ -123,7 +131,7 @@ class BoundUnboundMapper(object):
     @param seqBoundAli: str. The alignment result for bound sequence number nSeqBound
     @return rmsd. float. Root mean square deviation of CA of both imput chains
     @return boundToUnboundResDict. {Bio.PDB.Residue_bound --> Bio.PDB.Residue_unbound}
-    '''     
+    '''
     boundToUnboundResDict, atomBoundToUnboundMap= self.build2SeqsDictMap(nSeqUnbound, seqUnboundAli, nSeqBound, seqBoundAli)
     atoms_x, atoms_y= zip(* atomBoundToUnboundMap)
     coords_x= np.array([elem.get_coord() for elem in atoms_x])
@@ -141,7 +149,7 @@ class BoundUnboundMapper(object):
     @return seq1Aligment. str.
     @return seq2Aligment. str
     @return seqScore. float    
-    '''      
+    '''
     alignments = pairwise2.align.localds(seq1, seq2,BoundUnboundMapper.scoreMat, -11, -0.5)
 #    print(alignments[0][0])
 #    print(alignments[0][1])

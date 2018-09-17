@@ -58,7 +58,7 @@ def computeFeatures(methodProtocol= conf.modelType):
 
 def codifyStep(stepType= conf.modelType, feedbackPaths=None):
   benchCod= pCodifyAll.BenchmarkCodificator( feedback_paths= feedbackPaths, environType=stepType, 
-                                             ncpu=min( int(1+ memMax_gib//8), conf.ncpu), overridePrevComp= False)
+                                             ncpu=min( int(1+ memMax_gib//12), conf.ncpu), overridePrevComp= False)
   cMapsPath= os.path.join(os.path.expanduser(benchCod.dataRootPath),"common","contactMaps")
   prefixes= [ elem.split(".")[0] for elem in os.listdir(cMapsPath)]
   prefixes.sort()

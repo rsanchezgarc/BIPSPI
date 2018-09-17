@@ -132,8 +132,8 @@ To compile uniref90 blastDb you can use the following comands
 In order to train a model you need a set of protein complexes with the format of Docking Benchmark v5 stored in a 
 directory. For each complex, 4 pdb files must be provided, 2 for ligand (bound and unbound state) and
 2 for receptor (bound and unbound). If just bound pdb files available, you must symlink them in order to
-have four different files. filenames are prefix_X_Y.pdb, where prefix is an id for the complex (a pdb id or any other
-unique adress), X is l or r (ligand or receptor) and Y is u or b (bound or unbound).
+have four different files. filenames follow this setting: prefix_X_Y.pdb, where prefix is an id for the complex (a pdb id or any other
+unique string), X is l or r (ligand or receptor) and Y is u or b (bound or unbound).
 
 For example:
 ~/path/to/trainPdbs/
@@ -177,7 +177,7 @@ NOTE: tmux or screen are recommended when training the model.
 
   In order to obtain predictions you need a set of pdb or fasta files stored in a directory. 
   For each complex, 2 files must be provided, one for ligand and other for the receptor partner.
-  have four different files. filenames are prefix_X_u.Y, where prefix is an id for the complex (a pdb id or any other
+  have four different files. filenames follow this rule: prefix_X_u.Y, where prefix is an id for the complex (a pdb id or any other
   unique adress), X is l or r (ligand or receptor) and Y is .pdb or .fasta .
   
   For example:

@@ -3,6 +3,7 @@ import sys, os
 from subprocess import Popen, PIPE, check_output
 from Bio.PDB.Polypeptide import aa1 as AA_STANDARD
 from ..seqToolManager import seqToolManager, FeatureComputerException
+from .al2coWorkers.parsePsiBlast import parsePsiBlast
 from utils import myMakeDir, tryToRemove #utils is at the root of the package
 
 class Al2coManager(seqToolManager):
@@ -17,8 +18,6 @@ class Al2coManager(seqToolManager):
       @param winSize: int. The size of sliding window  NOT USED
     '''
     seqToolManager.__init__(self, seqsManager, outPath, winSize)
-    
-    self.al2coPerlScript= os.path.join(self.al2coRootDir, "get_al2co_scores.pl")
     self.al2coOutPath= myMakeDir(self.outPath,"al2co")
     
   def getFinalPath(self):
@@ -62,23 +61,37 @@ class Al2coManager(seqToolManager):
       @param psiblastOutName: str. Path to psiblast aligments results
       @param pssmOutNameRaw: str. Path to psiblast pssms results
     '''
+    msaFname= None
     chainType, chainId= prefixExtended.split("_")[1:3]
     seqStr, fastaFname= self.seqsManager.getSeq(chainType, chainId) # repeat as psiBlastManager can modify seqs     
     if self.checkAlreayComputed(prefixExtended):
       print("Al2co already computed for %s"%prefixExtended)
       return 0
-    print("lauching al2co over %s"%prefixExtended)      
-    al2coRawName, al2coProcName= self.getFNames(prefixExtended)["al2co"]
+    print("lauching al2co over %s"%prefixExtended)
+    try:     
+      al2coRawName, al2coProcName= self.getFNames(prefixExtended)["al2co"]
 
-    process= Popen(["perl", self.al2coPerlScript, fastaFname, self.al2coRootDir,
-                    psiblastOutName, pssmOutNameRaw,
-                    self.al2coOutPath], stdout=PIPE, stderr=PIPE)
-    processOut= process.communicate()
-    if len(processOut[1])>0:
-      print("Error computing al2co. Caught stdin/stderr:\n",processOut[0],processOut[1])
-#      raise FeatureComputerException("Al2co was not able to compute scores")
-    self.processAl2co(seqStr, prefixExtended, al2coRawName, al2coProcName)
-    
+      alignedSeqsDict= parsePsiBlast( inputSeq=seqStr, psiBlastOut=psiblastOutName)
+
+      filteredSeqsFname= self.runCdHit(alignedSeqsDict, inputSeq=seqStr, psiBlastOut=psiblastOutName)
+      msaFname= self.runClustalW(filteredSeqsFname, psiBlastOut=psiblastOutName)
+   
+      cmd= [self.al2coBin, "-i", msaFname,"-m", "0", "-f", "2", "-a", "F", "-b", "50",
+            "-g", "0.50", "-w", "1", "-c", "0", "-o", al2coRawName, "-t", al2coProcName]                                          
+      print(" ".join(cmd))
+      process= Popen(cmd, stdout=PIPE, stderr=PIPE)
+      processOut= process.communicate()
+
+      if len(processOut[1])>0:
+        print("Error computing al2co. Caught stdin/stderr:\n",processOut[0],processOut[1])
+  #      raise FeatureComputerException("Al2co was not able to compute scores")
+      self.processAl2co(seqStr, prefixExtended, al2coRawName, al2coProcName)
+    except (Exception, KeyboardInterrupt):
+      self.tryToRemoveAllFnames(prefixExtended)
+      raise
+    finally:
+      if msaFname: tryToRemove(msaFname)
+
   def processAl2co(self, seq, prefixExtended, al2coRaw, al2coProc):
     '''
       Reads al2co output file and writes another one with tabulated format, headers and
@@ -97,7 +110,6 @@ class Al2coManager(seqToolManager):
       outFile= open(al2coProc,"w")
       outFile.write("chainId seqIndex structResId resName score\n")
 
-#      print(conserData)
       alcoIx=0
       seqIx=0
       seqLen= len(seq)
@@ -145,4 +157,69 @@ class Al2coManager(seqToolManager):
         conserv.append(lineArray[1:3])
       else:
         break
-    return conserv     
+    return conserv
+
+  def runCdHit(self, allHits, inputSeq, psiBlastOut, pairSeqIdThr=0.95):
+    tmpName= os.path.basename(psiBlastOut).split(".")[0]
+    tmpName= os.path.join(self.tmp, tmpName)
+    cdhitInName= tmpName+".in-cdhit"
+    cdhitOutName= tmpName+".out-cdhit"
+    try:
+      with open(cdhitInName, "w") as f:
+        for hit in allHits:
+          f.write("> %s\n"%(hit["target_full_id"]))
+          f.write("%s\n"%(hit["targetSeq"].replace("-","")) )
+
+      if(pairSeqIdThr > .70 and pairSeqIdThr <= 1.00): n=5
+      elif (pairSeqIdThr <= .70 and pairSeqIdThr >= .55): n=4
+      elif (pairSeqIdThr < .55 and pairSeqIdThr >= .50): n=3
+      elif (pairSeqIdThr < .50 and pairSeqIdThr >= .40): n=2
+      else: raise ValueError("Error, just .4<=pairSeqIdThr<=1.00 allowed")
+      
+      cdhitCmd= [self.cdHitBin, "-i", cdhitInName, "-o", cdhitOutName, "-n", str(n), 
+                 "-c", str(pairSeqIdThr), "-T", str(self.psiBlastNThrs)]
+      print(" ".join(cdhitCmd))
+      proc = Popen(cdhitCmd, stdin= PIPE, stdout=PIPE, stderr=PIPE)
+      output=  proc.communicate()
+      if output== None or output[1]!="" or "There was an error cd-hit psiblast" in output[0]:
+        print(output)
+        print ("Error when parsing %s for al2Co"%psiBlastOut)
+        raise FeatureComputerException("Error when cd-hit %s for al2Co"%psiBlastOut)
+        
+      with open(cdhitOutName, "r+") as f:
+        fileData = f.read()
+        f.seek(0, 0)
+        f.write("> InputSeq\n")
+        f.write("%s\n"%(inputSeq.replace("-","")) )
+        f.write(fileData+"\n")
+      return cdhitOutName
+    except (Exception, KeyboardInterrupt):
+      tryToRemove(cdhitOutName)
+      raise
+    finally:
+      tryToRemove(cdhitInName)
+      
+  def runClustalW(self, filteredSeqsFname, psiBlastOut, clustalWOutName=None):
+
+    tmpFnameCommon= ".".join(filteredSeqsFname.split(".")[:-1])
+    if clustalWOutName is None:
+      clustalWOutName= tmpFnameCommon+".clustalw"
+    clustalCommand=[self.clustalW, "-infile=%s"%filteredSeqsFname, "-outfile=%s"%clustalWOutName, "-outorder=INPUT"]
+    print(" ".join(clustalCommand))
+    try :
+      proc = Popen(clustalCommand, stdin= PIPE, stdout=PIPE, stderr=PIPE)
+      output=  proc.communicate()
+      if output== None or output[1]!="" or "There was an error parsing psiblast, clustalw" in output[0]:
+        print(output)
+        print ("Error when clustalw %s for al2Co"%psiBlastOut)
+        raise FeatureComputerException("Error when clustalw %s for al2Co"%psiBlastOut)
+      return clustalWOutName
+    except (Exception, KeyboardInterrupt):
+      tryToRemove(clustalWOutName)
+      raise
+    finally:
+      tryToRemove(filteredSeqsFname)
+      tryToRemove(filteredSeqsFname+".clstr")
+      tryToRemove( tmpFnameCommon+".dnd")
+
+

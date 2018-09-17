@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import sys, os
 from Bio.PDB.NeighborSearch import NeighborSearch
 from computeFeatures.structStep.myPDBParser import myPDBParser as PDBParser
-from Bio.PDB.Polypeptide import is_aa, three_to_one, PPBuilder, CaPPBuilder
+from Bio.PDB.Polypeptide import is_aa, three_to_one, PPBuilder
 import numpy as np
 
 from ..FeaturesComputer import FeaturesComputer, FeatureComputerException
@@ -57,8 +57,8 @@ class ContactMapper(FeaturesComputer):
     self.outPath= myMakeDir(self.computedFeatsRootDir, "common/contactMaps")
     self.outName= os.path.join(self.outPath,self.prefix+".cMap.tab")    
     self.parser= PDBParser(QUIET=True)
-#    self.ppb=PPBuilder( radius= 200) # To not worry for broken chains
-    self.ppb=CaPPBuilder()
+    self.ppb=PPBuilder( radius= 200) # To not worry for broken chains
+#    self.ppb=CaPPBuilder()
     self.computeFun= self.contactMapOneComplex
 
   def mapBoundToUnbound(self, structureUnbound, structureBound, skipBoundChainsIds=set([])):
