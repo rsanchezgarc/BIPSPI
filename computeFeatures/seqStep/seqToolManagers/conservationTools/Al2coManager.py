@@ -4,7 +4,7 @@ from subprocess import Popen, PIPE, check_output
 from Bio.PDB.Polypeptide import aa1 as AA_STANDARD
 from ..seqToolManager import seqToolManager, FeatureComputerException
 from .al2coWorkers.parsePsiBlast import parsePsiBlast
-from utils import myMakeDir, tryToRemove #utils is at the root of the package
+from utils import myMakeDir, tryToRemove, tryToCleanDir #utils is at the root of the package
 
 class Al2coManager(seqToolManager):
   '''
@@ -87,7 +87,8 @@ class Al2coManager(seqToolManager):
   #      raise FeatureComputerException("Al2co was not able to compute scores")
       self.processAl2co(seqStr, prefixExtended, al2coRawName, al2coProcName)
     except (Exception, KeyboardInterrupt):
-      self.tryToRemoveAllFnames(prefixExtended)
+#      self.tryToRemoveAllFnames(prefixExtended)
+      tryToCleanDir(self.al2coOutPath,prefixExtended)
       raise
     finally:
       if msaFname: tryToRemove(msaFname)

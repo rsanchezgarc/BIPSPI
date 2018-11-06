@@ -75,15 +75,22 @@ def parsePsiBlast( inputSeq, psiBlastOut, seqIdlowCut=30, seqIdUpCut=95, evalueL
 
         if line.startswith("Query "):
           lineArray= line.split()
-          querySeq+=lineArray[2]
-          queryStartNum= min(int(lineArray[1]), queryStartNum)
-          queryEndNum= max(int(lineArray[-1]), queryEndNum)
+          if len(lineArray)<3:
+            querySeq+=lineArray[1]
+          else:
+            querySeq+=lineArray[2]          
+            queryStartNum= min(int(lineArray[1]), queryStartNum)
+            queryEndNum= max(int(lineArray[-1]), queryEndNum)
           
         if line.startswith("Sbjct "):
           lineArray= line.split()
-          targetStartNum= min(int(lineArray[1]), targetStartNum)
-          targetEndNum= max(int(lineArray[-1]), targetEndNum)
-          targetSeq+=lineArray[2]
+          if len(lineArray)<3:
+            querySeq+=lineArray[1]
+          else:
+            targetSeq+=lineArray[2]        
+            targetStartNum= min(int(lineArray[1]), targetStartNum)
+            targetEndNum= max(int(lineArray[-1]), targetEndNum)
+
   if (identity >= seqIdlowCut and  identity <= seqIdUpCut and evalue <= evalueLowCut and 
           qlen >= lengthlocut and   100.*qlen/float(inputSeqLen) >= qfraclocut): #valid pairwise alig params
     target_full_id= targetId+"_%s_%s"%(targetStartNum, targetEndNum)

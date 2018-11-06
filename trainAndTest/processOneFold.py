@@ -23,59 +23,19 @@ def getDataForTestFromPrefix( testPrefix, testPath ):
                                   a pair of amino acids in transpose form (first receptor aa second ligand aa)
           ppiComplex.getLabels(): np.array which contains the labels (-1, 1 ) of each row (pair of amino acids)
           ppiComplex.getIds(): pandas.DataFrame whose columns are:
-                    chainIdL structResIdL resNameL chainIdR structResIdR resNameR categ            
+                    chainIdL resIdL resNameL chainIdR resIdR resNameR categ            
   '''
   for fname in sorted(os.listdir(testPath)):
     if fname.startswith(testPrefix):
       ppiComplex= joblib_load(os.path.join(testPath, fname) )
       data_d,data_t= ppiComplex.getData()      
       return (data_d, data_t, ppiComplex.getLabels(), ppiComplex.getIds())
-    
-def getDataForClassifierFromComplexes(listOfComplexes):   
-  '''
-    Extracts the needed information to train a classifier from a list of codified complexes
-    (codifyComplexes.ComplexCodified.ComplexCodified).
-
-    @param listOfComplexes:  [codifyComplexes.ComplexCodified.ComplexCodified]. The complex codified that will be used for
-                                      training
-    
-    @return (dataDir,dataTrans, labels)
-          dataDir: np.array (n,m). A np.array that can be feed to the classifier. Each row represents
-                                  a pair of amino acids in direct form (first ligand aa second receptor aa)
-          dataTrans: np.array (n,m). A np.array that can be feed to the classifier. Each row represents
-                                  a pair of amino acids in transpose form (first receptor aa second ligand aa)
-          labels: np.array which contains the labels (-1, 1 ) of each row (pair of amino acids)
-  '''
-  dataDir= []
-  dataTrans= []
-  labels= []
-  prefixes= []
-  complexesNumId=[]
   
-  if not isinstance(listOfComplexes, list) and not isinstance(listOfComplexes, tuple):
-    listOfComplexes= [listOfComplexes]
-  for complexNum, ppiComplex in enumerate(listOfComplexes):
-    if not inspect.isgenerator(ppiComplex):
-      ppiComplex= [ppiComplex]
-    for dataBatch in ppiComplex: #In case ppiComplex is an iterator of chunks
-      data_d,data_t= dataBatch.getData()
-      dataDir.append(  data_d)
-      dataTrans.append( data_t)
-      labels.append( dataBatch.getLabels())
-      prefixes.append(dataBatch.getPrefix())
-      complexesNumId+= [complexNum]* data_d.shape[0]
-#      print(dataBatch.prefix, np.max(data_d),np.max(data_t))
-  dataDir= np.concatenate(dataDir)
-  dataTrans= np.concatenate(dataTrans)
-  labels= np.concatenate(labels)     
-  return dataDir,dataTrans, labels, complexesNumId
-  
-def trainAndTestOneFold(trainComplexes, testPrefixes, testPath, outputPath, verbose, ncpu= 1):
+def trainAndTestOneFold(trainData, testPrefixes, testPath, outputPath, verbose=False, ncpu= 1):
   '''
     Trains and tests one fold
      
-     @param trainComplexes: [codifyComplexes.ComplexCodified.ComplexCodified]. The complex codified that will be used for
-                                      training
+     @param trainData: a numpy array for training with first column labels and the others are features
      @param testPrefixes: str[]. A list that contains prefixes for all complexes to be tested
      @param testPath: str. Path to a dir where testing data files are stored
      @param outputPath: str. Path to a dir where predictions will be stored
@@ -104,13 +64,8 @@ def trainAndTestOneFold(trainComplexes, testPrefixes, testPath, outputPath, verb
     else: 
       verboseLevel=0
     
-    dataDir,dataTrans, labels, __ = getDataForClassifierFromComplexes(trainComplexes)
-    trainData= np.concatenate([dataDir,dataTrans])
-    trainLabels= np.concatenate([labels,labels])
-    dataDir,dataTrans, labels = (None, None, None)
-    modelo= trainMethod(trainData, trainLabels, verboseLevel= verboseLevel, ncpu= ncpu)
+    modelo= trainMethod(trainData[:, 1:], trainData[:, 0], verboseLevel= verboseLevel, ncpu= ncpu)
     if verbose==True: print ("Classifier fitted.")
-    
 
     for testPrefix in testPrefixesNotEvaluated:
       prob_predictionsDir_list= []

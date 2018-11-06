@@ -3,6 +3,8 @@ from subprocess import call
 import requests
 import re
 from bigExceptions import NoAvailableForDownloadPDB
+from Config import Configuration
+conf=Configuration()
 
 def myMakeDir(dirPath, pathTail=None):
   '''
@@ -10,7 +12,7 @@ def myMakeDir(dirPath, pathTail=None):
     @param dirPath: str. prefix  of the path.
     @param pathTail: str. tail of the path. Optional
     @return the result of path concatenate dirPath and pathTail (which will be a directory)
-  '''  
+  '''
   if pathTail != None:
     dirPath= os.path.join(dirPath, pathTail)
   if not os.path.isdir(dirPath):
@@ -38,7 +40,7 @@ def myMakeDirUnique(dirPath, pathTail=None):
     @param dirPath: str. prefix  of the path.
     @param pathTail: str. tail of the path. Optional
     @return the result of path concatenation of dirPath and pathTail
-  ''' 
+  '''
 
   if pathTail != None:
     if pathTail.endswith("/"):
@@ -99,3 +101,12 @@ def openForReadingFnameOrGz( fname):
     return gzip.open(fname+".gz")
   else:
     return open(fname)
+
+#agnadir
+def tryToCleanDir(dirName, substr="_", rootDataDir=conf.computedFeatsRootDir):
+  for name in os.listdir(dirName):
+    if not substr or substr in name:
+      nameToRemove= os.path.join(dirName, name)
+      assert nameToRemove.startswith(rootDataDir ), "Error, trying to remove not allowed file %s"%(nameToRemove)
+      os.remove(os.path.join(dirName, name))
+

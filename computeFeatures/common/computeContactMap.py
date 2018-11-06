@@ -2,7 +2,8 @@ from __future__ import absolute_import
 import sys, os
 from Bio.PDB.NeighborSearch import NeighborSearch
 from computeFeatures.structStep.myPDBParser import myPDBParser as PDBParser
-from Bio.PDB.Polypeptide import is_aa, three_to_one, PPBuilder
+from Bio.PDB.Polypeptide import is_aa, three_to_one, PPBuilder, CaPPBuilder
+
 import numpy as np
 
 from ..FeaturesComputer import FeaturesComputer, FeatureComputerException
@@ -58,7 +59,6 @@ class ContactMapper(FeaturesComputer):
     self.outName= os.path.join(self.outPath,self.prefix+".cMap.tab")    
     self.parser= PDBParser(QUIET=True)
     self.ppb=PPBuilder( radius= 200) # To not worry for broken chains
-#    self.ppb=CaPPBuilder()
     self.computeFun= self.contactMapOneComplex
 
   def mapBoundToUnbound(self, structureUnbound, structureBound, skipBoundChainsIds=set([])):
@@ -72,13 +72,17 @@ class ContactMapper(FeaturesComputer):
       @return bound2UnboundMapDict: Dict {Bio.PDB.Residue (from bound structure): Bio.PDB.Residue (from unbound structure)}
       
     '''
-    bound2UnboundMapDict={}
+    bound2UnboundMapDict={} 
     pp_list_unbound= self.ppb.build_peptides(structureUnbound, aa_only= False)    
+    if len(pp_list_unbound)==0:
+      pp_list_unbound= CaPPBuilder().build_peptides(structureUnbound, aa_only= False)
     if structureBound is None: # if there is no bound structure, use just unbound.
       boundToUnboundMap= lambda x: x  #For a given residue will return the same residue
       pp_list_bound= pp_list_unbound
     else:
       pp_list_bound= self.ppb.build_peptides(structureBound, aa_only= False)    
+      if len(pp_list_bound)==0:
+        pp_list_bound= CaPPBuilder().build_peptides(structureBound, aa_only= False)
       mapper= BoundUnboundMapper( pp_list_unbound,pp_list_bound) # res_bound->res_unbound mapper object
       mapper.build_correspondence()
       boundToUnboundMap = mapper.mapBoundToUnbound  #For a given bound residue will return its unbound equivalent
@@ -206,7 +210,7 @@ class ContactMapper(FeaturesComputer):
     if JUST_INTERACTING_CHAINS==False:
       chainsNotContactR=set([])
       chainsNotContactL=set([])     
-
+    
     rResDict= self.mapBoundToUnbound(structureR_u, structureR_b, skipBoundChainsIds=chainsNotContactR)          
     lResDict= self.mapBoundToUnbound(structureL_u, structureL_b, skipBoundChainsIds=chainsNotContactL)
     nResiduesL= len(lResDict)
