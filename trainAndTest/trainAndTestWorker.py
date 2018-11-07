@@ -115,8 +115,8 @@ class TrainAndTestWorker(Configuration):
       prefixes.append(ppiComplex.getPrefix())
       complexesNumId+= [complexNum]* data_d.shape[0]
 
-    dataDir= np.concatenate(dataDir)
-    dataTrans= np.concatenate(dataTrans)
+    dataDir= np.concatenate(dataDir).astype(np.float32)
+    dataTrans= np.concatenate(dataTrans).astype(np.float32)
     labels= np.concatenate(labels)     
     trainData= np.concatenate([dataDir,dataTrans])
     del dataDir, dataTrans
@@ -372,7 +372,7 @@ class TrainAndTestWorker(Configuration):
         if not prefix[1:3].isupper():
           new_trainIdx.append(i)
       trainIdx= new_trainIdx
-      assert len(trainIdx)>2, "Error, TRAIN_WITH_BENCH=False, but all complexes belong to benchmark (capital letters)
+      assert len(trainIdx)>2, "Error, TRAIN_WITH_BENCH=False, but all complexes belong to benchmark (capital letters)"
     labelsAndTrainData= self.data[ np.isin(self.data[:, 0], trainIdx), 1: ]
 #    print( itemgetter(* trainIdx)(self.trainPrefixes), len(trainIdx) )
 #    print( set(self.trainPrefixes).difference(set(itemgetter(* trainIdx)(self.trainPrefixes))) )
