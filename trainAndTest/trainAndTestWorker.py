@@ -89,8 +89,8 @@ class TrainAndTestWorker(Configuration):
       paralVerbose= 1 
       
     readingNThreads= self.numProc
-    if self.numProc > 12:
-      readingNThreads= 12
+    if self.numProc > 18:
+      readingNThreads= 18
     if sharedMemoryPath:
       import SharedArray as sa
       try:
@@ -366,6 +366,23 @@ class TrainAndTestWorker(Configuration):
                     sklearn.ensemble.RandomForest. Trained model
     '''
     new_trainIdx= []
+
+    if returnModel:
+      testPrefixes=[]
+    else:
+      if len(testIdx)!=0:
+        testPrefixes= itemgetter( *testIdx )( self.testPrefixes)
+      else:
+        return None
+
+    print("Putative test prefixes %s"%(str(testPrefixes)))
+    if isinstance(testPrefixes, str): testPrefixes= [testPrefixes]
+    if not TRAIN_WITH_BENCH:
+      testPrefixes=[ prefix for prefix in testPrefixes if prefix[1].isupper()]
+      if len(testPrefixes)==0:
+        return None
+
+
     if not TRAIN_WITH_BENCH:
       for i in trainIdx:
         prefix = self.trainPrefixes[i]
@@ -378,20 +395,6 @@ class TrainAndTestWorker(Configuration):
 #    print( set(self.trainPrefixes).difference(set(itemgetter(* trainIdx)(self.trainPrefixes))) )
 #    print(labelsAndTrainData.shape)
 #    raw_input("enter")
-
-    if returnModel:
-      testPrefixes=[]
-    else:
-      if len(testIdx)!=0:
-        testPrefixes= itemgetter( *testIdx )( self.testPrefixes)
-      else:
-        return None
-
-    if isinstance(testPrefixes, str): testPrefixes= [testPrefixes]
-    if not TRAIN_WITH_BENCH:
-      nBench= sum( [1 for prefix in testPrefixes if prefix[1].isupper()])
-      if nBench==0:
-        return None
 
     if evaluateJustFirstInTest and not returnModel:
       testPrefixes= [ testPrefixes[0] ]
