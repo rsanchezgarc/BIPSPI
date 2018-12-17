@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 import os, sys, copy
 import numpy as np
@@ -20,9 +19,9 @@ pd.set_option('precision', 4)
 PARALLEL_AT_COMPLEX_LEVEL= False #If True, each complex will be computed in a different process
                                  #otherwise training will be done using multiple threads (but not results evaluation).
                                  #True recommended when lots of memory available (8 gb per cpu aprox)
-                                 
+
 RANDOM_STATE= 121
-TRAIN_WITH_BENCH= False                                 
+TRAIN_WITH_BENCH= False
 class TrainAndTestWorker(Configuration):
   '''
     Class that performs train and test
@@ -89,8 +88,8 @@ class TrainAndTestWorker(Configuration):
       paralVerbose= 1 
       
     readingNThreads= self.numProc
-    if self.numProc > 12:
-      readingNThreads= 12
+    if self.numProc > 18:
+      readingNThreads= 18
     if sharedMemoryPath:
       import SharedArray as sa
       try:
@@ -187,6 +186,7 @@ class TrainAndTestWorker(Configuration):
         print("Performing testing with testing set (independency must be ensure by user")
         trainTest_idx_tuple_list= [ (range(nTrain), range(nTest)) ]
         
+#    trainTest_idx_tuple_list= reversed(list(trainTest_idx_tuple_list))
 
     listOfResults=[]    
     if PARALLEL_AT_COMPLEX_LEVEL:  
@@ -348,8 +348,8 @@ class TrainAndTestWorker(Configuration):
           continue
       train_ix= sorted( set(range(len(self.trainPrefixes))).difference(test_ix))
       yield ( np.array(train_ix ), np.array(test_ix ) )
-      
-      
+
+
   def computeOneFold(self, trainIdx,  testIdx, returnModel=False, evaluateJustFirstInTest=True):
     '''
       Trains and tests one fold of cross validation. Returns either a pandas.DataFrame which is a summary
@@ -366,6 +366,23 @@ class TrainAndTestWorker(Configuration):
                     sklearn.ensemble.RandomForest. Trained model
     '''
     new_trainIdx= []
+
+    if returnModel:
+      testPrefixes=[]
+    else:
+      if len(testIdx)!=0:
+        testPrefixes= itemgetter( *testIdx )( self.testPrefixes)
+      else:
+        return None
+
+    print("Putative test prefixes %s"%(str(testPrefixes)))
+    if isinstance(testPrefixes, str): testPrefixes= [testPrefixes]
+    if not TRAIN_WITH_BENCH:
+      testPrefixes=[ prefix for prefix in testPrefixes if prefix[1].isupper()]
+      if len(testPrefixes)==0:
+        return None
+
+
     if not TRAIN_WITH_BENCH:
       for i in trainIdx:
         prefix = self.trainPrefixes[i]
@@ -379,26 +396,16 @@ class TrainAndTestWorker(Configuration):
 #    print(labelsAndTrainData.shape)
 #    raw_input("enter")
 
-    if returnModel:
-      testPrefixes=[]
-    else:
-      if len(testIdx)!=0:
-        testPrefixes= itemgetter( *testIdx )( self.testPrefixes)
-      else:
-        return None
-      
-    if isinstance(testPrefixes, str): testPrefixes= [testPrefixes]
-    
     if evaluateJustFirstInTest and not returnModel:
       testPrefixes= [ testPrefixes[0] ]
       
     results, model= trainAndTestOneFold( labelsAndTrainData, testPrefixes, self.testPath, self.outputPath, 
                                          self.verbose, ncpu= self.numProc)
-    if returnModel:                                  
+    if returnModel:
       return model
     else:
       return results
-    
+
     
   @staticmethod  
   def loadPrefixFile( prefix, filesPath):
