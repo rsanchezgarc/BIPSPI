@@ -187,7 +187,6 @@ class TrainAndTestWorker(Configuration):
         trainTest_idx_tuple_list= [ (range(nTrain), range(nTest)) ]
         
 #    trainTest_idx_tuple_list= reversed(list(trainTest_idx_tuple_list))
-
     listOfResults=[]    
     if PARALLEL_AT_COMPLEX_LEVEL:  
       argsList= [ ( trainIdx, testIdx, self.trainComplexesLoaded, self.testPrefixes,
