@@ -222,7 +222,7 @@ class TrainAndTestWorker(Configuration):
       joblib_save(model, self.saveModelFname)
     return summary
 
-  def splitAccordigScopePairs(self, scopeFname, ligandReceptorOrder=False):
+  def splitAccordigScopePairs(self, scopeFname, ligandReceptorOrder=True):
     '''
 
     scope independency will be carried out as pairs of families, e.g (A-B) (A-B') are independent (A-B) (A'-B') not
@@ -237,7 +237,7 @@ class TrainAndTestWorker(Configuration):
 
     @param ligandReceptorOrder: True if first scope column is for ligand and second is for receptor. 
                                 if False first scope column is for receptor and second is for ligand.
-                                
+
     '''
     import itertools
     assert self.trainPrefixes== self.testPrefixes
@@ -272,7 +272,7 @@ class TrainAndTestWorker(Configuration):
           else:
             train_ix+=[j]
       yield ( np.array(train_ix ), np.array(test_ix ) )
-      
+
       
   def splitAccordigScopeMonomers(self, scopeFname):
     '''
@@ -297,7 +297,7 @@ class TrainAndTestWorker(Configuration):
         scopesL= set( itertools.chain.from_iterable([elem.split(":") for elem in scopesL.split(";")] ))
         scopesR= set( itertools.chain.from_iterable([elem.split(":") for elem in scopesR.split(";")] ))
         prefixToScope[prefix]= set([ elem for elem in scopesL.union( scopesR ) if elem!="NA" ])
-        
+
     for i, prefix_i in enumerate(self.trainPrefixes):
       test_ix=[]
       train_ix=[]
@@ -349,7 +349,7 @@ class TrainAndTestWorker(Configuration):
       yield ( np.array(train_ix ), np.array(test_ix ) )
 
 
-  def computeOneFold(self, trainIdx,  testIdx, returnModel=False, evaluateJustFirstInTest=True):
+  def computeOneFold(self, trainIdx,  testIdx, returnModel=False, evaluateJustFirstInTest=False):
     '''
       Trains and tests one fold of cross validation. Returns either a pandas.DataFrame which is a summary
       of performance evaluation or a sklearn.ensemble.RandomForest object
@@ -397,7 +397,7 @@ class TrainAndTestWorker(Configuration):
 
     if evaluateJustFirstInTest and not returnModel:
       testPrefixes= [ testPrefixes[0] ]
-      
+
     results, model= trainAndTestOneFold( labelsAndTrainData, testPrefixes, self.testPath, self.outputPath, 
                                          self.verbose, ncpu= self.numProc)
     if returnModel:
