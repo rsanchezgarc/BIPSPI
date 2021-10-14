@@ -246,7 +246,7 @@ or
 If files are pdbs or pdbs and fasta, sequence-based and structural features are used, 
 otherwise, sequence-based features only.
 
-Then, edit the following fields in [configFile_pred.cfg](../configFile/cmdTool/configFile_pred.cfg) (`./configFile/configFile_pred.cfg`)
+Then, edit the following fields in [configFile_pred.cfg](../configFiles/cmdTool/configFile_pred.cfg) (`./configFile/configFile_pred.cfg`)
 
 
 The following parameters are the most important config parameters for prediction:
