@@ -4,5 +4,5 @@
 !*.txt
 !*.cfg
 !*.sh
-!*README
+!*.md
 !*.R
