@@ -4,7 +4,6 @@ import gc
 import hashlib
 import random
 
-from Config import Configuration
 from joblib import load as joblib_load, dump as joblib_save, Parallel, delayed
 import numpy as np
 
@@ -18,7 +17,6 @@ from .classifiers.xgBoost import trainMethod, predictMethod
 SAMPLE_TRAIN_EXAMPLES=False
 MAX_SAMPLING_PAIRS=500000
 
-conf=Configuration()
 
 def findFullTestPPIName(testPrefix, testPath):
   for fname in sorted(os.listdir(testPath)):
@@ -152,6 +150,9 @@ def trainAndTestOneFold(trainData, testPrefixes, trainSubsetN, testPath, outputP
       testPrefixesNotEvaluated.append((testPrefix, None))
 
   modelo = None
+
+  from Config import Configuration
+  conf = Configuration()
   modelFname= os.path.join(conf.tmp, hashlib.md5("".join(sorted(testPrefixes))).hexdigest()+str(trainSubsetN)+"bipspi2.pckl")
 
   resultsForEvaluation_list=[]
