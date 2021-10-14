@@ -27,7 +27,7 @@
     - psiblast 2.2.31+ (https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
     - SPIDER2 (http://sparks-lab.org/yueyang/server/SPIDER2/)
 
-    You need to install all them and edit the [dependencies.cfg](configFiles/cmdTool/dependencies.cfg) (`./configFiles/cmdTool/dependencies.cfg`) file 
+    You need to install all them and edit the [dependencies.cfg](../configFiles/cmdTool/dependencies.cfg) (`./configFiles/cmdTool/dependencies.cfg`) file 
     accordingly to point to installation locations. If other config file is intented to be used, it can be set using the `--configDependencies` flag.
 
 2) Prepare BLAST database
@@ -46,7 +46,7 @@
     ```
      makeblastdb -in uniref90.fasta -dbtype prot -out uniref90.fasta -hash_index
     ```
-    4. Edit  [dependencies.cfg](configFiles/cmdTool/dependencies.cfg) (`./configFiles/cmdTool/dependencies.cfg`) file 
+    4. Edit  [dependencies.cfg](../configFiles/cmdTool/dependencies.cfg) (`./configFiles/cmdTool/dependencies.cfg`) file 
     to point to the BLAST database. For this example, the name is `/blast/database/directory/uniref90.fasta`
 
 
@@ -109,9 +109,9 @@ lrwxrwxrwx 1 user user     12 Oct 14 01:18 3qdg_r_u.pdb -> 3qdg_r_b.pdb
 </details>
 <br>
 
-Default training mode is K-fold cross-validation. The number of folds is set  in [dependencies.cfg](configFiles/cmdTool/dependencies.cfg) (`./configFiles/cmdTool/dependencies.cfg`) file parameter
+Default training mode is K-fold cross-validation. The number of folds is set  in [dependencies.cfg](../configFiles/cmdTool/dependencies.cfg) (`./configFiles/cmdTool/dependencies.cfg`) file parameter
 N_KFOLD. If -1, leave one out is performed. In the last step, only predictions for capital letter prefixes will be produced.
-If all complexes are wanted to be predicted, edit `SKIP_LOWER_PREDICTION=False` in [trainAndTest.py](predictorCode/trainAndTest/trainAndTest.py)
+If all complexes are wanted to be predicted, edit `SKIP_LOWER_PREDICTION=False` in [trainAndTest.py](../trainAndTest/trainAndTest.py)
 
 Alternatively, you can provide a list of complexes to be considered in each fold. In that case N_KFOLD will point
 towards that file.
@@ -119,7 +119,7 @@ towards that file.
 
 Additionally, for cross-validation, you generally require a file with information about the families of the protein chains to ensure that the cross-validation partitions are independend.
 In our study, we employ SCOPe familes, but any grouping strategy should be valid (e.g sequence identity).
-An example of such file is found in [scopes_example.tab](predictorCode/docs/scopes_example.tab) and the scheme is as follows:
+An example of such file is found in [scopes_example.tab](../docs/scopes_example.tab) and the scheme is as follows:
 ```
 COMPLEX_ID  CHAINS_PARTNER_1  CHAINS_PARTNER_2 SCOPES_PARTNER_1 SCOPES_PARTNER_2
 
@@ -131,7 +131,7 @@ SCOPES_PARTNER_1 and SCOPES_PARTNER_1:  The family/cluster ids. Familes of diffe
 ```
 
  
-The config file for the training experiment  [configFile.cfg](configFiles/cmdTool/configFile.cfg) (`./configFiles/cmdTool/dependencies.cfg`)  
+The config file for the training experiment  [configFile.cfg](../configFiles/cmdTool/configFile.cfg) (`./configFiles/cmdTool/dependencies.cfg`)  
 needs to be eddited to point towards the location of the train complexes and the scopes families file.
 Another config file located in a non estandard location could be used with  the flag `--configFile path/to/configFile.cfg)`
 
@@ -246,7 +246,7 @@ or
 If files are pdbs or pdbs and fasta, sequence-based and structural features are used, 
 otherwise, sequence-based features only.
 
-Then, edit the following fields in [configFile_pred.cfg](./configFile/configFile_pred.cfg) (`./configFile/configFile_pred.cfg`)
+Then, edit the following fields in [configFile_pred.cfg](../configFile/configFile_pred.cfg) (`./configFile/configFile_pred.cfg`)
 
 
 The following parameters are the most important config parameters for prediction:
@@ -297,7 +297,7 @@ python predictComplexes.py -i ./docs/trainingPDBsExample --wdir  path/where/pred
 
 Additionally, instead a direectory with files, you can provide a csv file with pdbIds and chain Ids to be used as input. 
 BIPSPI will automatically download then and execute the struct mode. Only one chain per pdbId is superted at this moment.
-See [predict_from_pdbIds.csv](docs/predict_from_pdbIds.csv) for an example
+See [predict_from_pdbIds.csv](../docs/predict_from_pdbIds.csv) for an example
 
 ```
 python predictComplexes.py -f ./docs/predict_from_pdbIds.csv --wdir path/where/predictions/are/stored/
