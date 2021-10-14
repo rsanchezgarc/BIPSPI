@@ -257,7 +257,7 @@ class BenchmarkCodificator(Configuration):
     nComplexes= len(argsToCodifyOneComplex)
     if nComplexes==0 and self.overridePrevComp:
       raise CodifyComplexException("No complexes to compute. There are no a single cMap or prevStep result in %s"%cMapPath)
-    print ("Number of remaining complexes to codify: %d. Already computed: %d"%(nComplexes, alreadyComputedNum) )
+    print ("Number of remaining complexes to encode: %d. Already computed: %d"%(nComplexes, alreadyComputedNum) )
     #Parallel execution
     checksum=Parallel(n_jobs=self.ncpu)(delayed(launchCodifyOneComplex)(inp) for inp in argsToCodifyOneComplex)
     return self.out_Codified_path

@@ -87,7 +87,7 @@ class OneComplexCodifier(object):
       :param prefix: str. A pdb id for a complex.
       :return wholeComplexObject: ComplexCodified.ComplexCodified. A ComplexCodified object containing all putative pairs
     '''
-    print( "Codifying %s"%prefix )
+    print( "Encoding %s"%prefix )
     st=time.time()    
     prefixesInvolvedInCoding= self.readComplexesUsedInTraining( prefix)
     if self.environType.startswith("mixed"):

@@ -18,6 +18,7 @@ the latter case. Complete guide can be found in:
 
 - Homo-complexes and hetero-complex specific models, boosting performance especially when predicting homo-complexes.
 - Sequence vs structure mode. Version 1 could only be executed with two sequences or two structures. Now one sequence and one structure could be used as input as well. 
+- Atomatic correlated mutations (optinal) 
 
 
 

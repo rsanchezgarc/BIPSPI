@@ -6,3 +6,7 @@
 !*.sh
 !*.md
 !*.R
+!*.csv
+!*.tab
+!*.pdb
+!*.fasta

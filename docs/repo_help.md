@@ -71,7 +71,8 @@ python generateBIPSPIModel.py --N_KFOLD 4 --scopeFamiliesFname ./docs/scopes_exa
 In order to train a model you need a set of protein complexes with the format of the Protein Docking Benchmark v5 stored in a 
 directory. For each complex, 4 pdb files must be provided, 2 for ligand (bound and unbound state) and
 2 for receptor (bound and unbound). If only bound pdb files available, you must symlink them in order to
-have four different files, pretending that the umbound file is the same that the bound one. Filenames follow the pattern prefix_X_Y.pdb, where prefix is an id for the complex (a pdb id or any other
+have four different files, pretending that the unbound file is the same that the bound one.
+Filenames follow the pattern prefix_X_Y.pdb, where prefix is an id for the complex (a pdb id or any other
 unique id), X is 'l' or 'r' (ligand or receptor) and Y is 'b' or 'u' (bound or unbound). Finally, the prefix must
 be written in capital letters if the complex needs to be evaluated, while written in lowercase if the complex is
 a train-only one.
@@ -307,17 +308,17 @@ python predictComplexes.py -f ./docs/predict_from_pdbIds.csv --wdir path/where/p
 
 For each complex, 3 results file are generated in ` path/where/predictions/are/stored/results/(seq|struct|mixed)_2`
   ```
-  -prefix.tab.res: predition of Residue-Residue Contacts. Has the following columns
+  -prefix.tab.res.gz: predition of Residue-Residue Contacts. Has the following columns
         chainIdL resIdL resNameL chainIdR resIdR resNameR categ prediction
         categ colum is ignored.
         predictions go from 0 to 1, 1 contact, 0 no contact.
         
-  -prefix.tab.res.lig: predition of ligand binding site. Has the following columns
+  -prefix.tab.res.lig.gz: predition of ligand binding site. Has the following columns
         chainId resId categ prediction
         categ colum is ignored.
         predictions go from 0 to +infinite, 0 no binding site        
 
-  -prefix.tab.res.rec: predition of receptor binding site. Has the following columns
+  -prefix.tab.res.rec.gz: predition of receptor binding site. Has the following columns
         chainId resId categ prediction
         categ colum is ignored.
         predictions go from 0 to +infinite, 0 no binding site  
