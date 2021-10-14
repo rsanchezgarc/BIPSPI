@@ -3,29 +3,34 @@ import pandas as pd
 
 pd.set_option('precision', 4)
 
-BENCH3_PATH= os.path.expanduser("~/Tesis/rriPredMethod/data/ppdockingBenchData/BenchmarkData/rawBenchmark3/")
-EVAL_JUST_BENCH3= False
+EVAL_JUST_LAST_STEP=False
+
+SKIP_LOWERCASE=True
 
 def main(fname):
-  if EVAL_JUST_BENCH3:
-    bench3Prefixes= set([ elem.split(".")[0].split("_")[0] for elem in os.listdir(BENCH3_PATH)])
   pdbsScoresDict={}
   nextLineIsGood=False
   colNames= None
   with open(fname) as f:
     for line in f:
-      if line.startswith("pdb  auc_pair  "):
+#      print(line)
+      if "pdb  auc_pair  " in line:
         colNames= line.split()
         nextLineIsGood=True
         continue
       if nextLineIsGood:
         dataLine= line.split()
         pdbId= dataLine[0].split(".")[0]
-        if EVAL_JUST_BENCH3 and not pdbId in bench3Prefixes: continue
+        if EVAL_JUST_LAST_STEP and "@" in pdbId:
+          nextLineIsGood=False
+          continue
+        if SKIP_LOWERCASE and pdbId.islower(): continue
+          nextLineIsGood=False
+          continue
         dataLine= [dataLine[0]]+ [float(elem) for elem in dataLine[1:]]
         pdbsScoresDict[dataLine[0]]= dataLine
         nextLineIsGood=False
-  resDf= pd.DataFrame.from_records(pdbsScoresDict.values())
+  resDf= pd.DataFrame.from_records(list(pdbsScoresDict.values()))
   resDf.columns= colNames
   resDf.sort_values("pdb", inplace=True)
 

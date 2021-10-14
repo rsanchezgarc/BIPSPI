@@ -8,16 +8,13 @@ from Config import Configuration
 pd.set_option('precision', 4)
 
 EVAL_PAIRS_AT= [50,100,500]
-
-PSAIA_PATH= os.path.join(Configuration().computedFeatsRootDir,"structStep/PSAIA/procPSAIA")
-
   
 def computeAUC(testLabels, predictions):
   '''
     returns ROC's auc or 0.5 if it was not possible to compute it
-    @param testLabels: int[]. List of labels (-1 for negative class and 1 for positive class)
-    @param testLabels: float[]. List of scores predicted
-    @return auc_score: float
+    :param testLabels: int[]. List of labels (-1 for negative class and 1 for positive class)
+    :param testLabels: float[]. List of scores predicted
+    :return auc_score: float
   '''
   try:
     return roc_auc_score(testLabels, predictions)
@@ -30,26 +27,26 @@ def evaluatePairs(prefix, resDf):
     gets auc_score and precision and recall at EVAL_PAIRS_AT thresholds (the n==EVAL_PAIRS_AT[i] highest 
     predictions will be regarded as positive and all others as negatives).
 
-    @param prefix: str. An id for the complex
-    @param resDf: pandas.DataFrame. A DataFrame that represents the pairs predictions. It has the following columns:
-                          chainIdL structResIdL resNameL chainIdR structResIdR resNameR categ prediction
+    :param prefix: str. An id for the complex
+    :param resDf: pandas.DataFrame. A DataFrame that represents the pairs predictions. It has the following columns:
+                          chainIdL resIdL resNameL chainIdR resIdR resNameR categ prediction
       
-    @return summary: pandas.DataFrame. A DataFrame that has the following columns:
+    :return summary: pandas.DataFrame. A DataFrame that has the following columns:
                           pdb  auc_pair  prec_50  reca_50  prec_100  reca_100  prec_500  reca_500 
                      This DataFrame will have just one row. All evaluation metrics are computing at pair level (rows)
   '''
   
-  meanPairsScore= resDf["prediction"]
+  pairsScores= resDf["prediction"]
   testLabels= resDf["categ"]
-  auc_val = computeAUC( testLabels, meanPairsScore)
+  auc_val = computeAUC( testLabels, pairsScores)
   #compute precision and recall at EVAL_PAIRS_AT highest score pair
   precisionAt=[]
   recallAt=[]
-  probability_sorted_indexes = meanPairsScore.argsort(axis=0)
+  probability_sorted_indexes = pairsScores.argsort(axis=0)
   probability_sorted_indexes = probability_sorted_indexes[::-1]
   for evalPoint in EVAL_PAIRS_AT:
     try:
-      label_predictions= np.ones(meanPairsScore.shape[0])* np.min( testLabels)
+      label_predictions= np.ones(pairsScores.shape[0])* np.min( testLabels)
       label_predictions[probability_sorted_indexes[0 : evalPoint]]= np.repeat(1, evalPoint)
 
       precisionAt.append( precision_score(testLabels[probability_sorted_indexes[0 : evalPoint]],
@@ -71,12 +68,12 @@ def evaluateBindingSite(prefix, res_pos, res_all, scoresDict, chainType="l"):
     gets auc_score and matthews_corrcoef, precision and recall at a threshold computed 
     with getThr()
 
-    @param prefix: str. An id for the complex
-    @param res_pos: set(str[])). A set of resIds that are part of the interface. E.x. set(["A_32","*_13"])
-    @param res_all: set(str[])). A set of all resIds that are part of the protein. E.x. set(["A_32","*_13"])
-    @param scoresDict:{str:float} {ChainId_resId: interface_score}. The scores for each of the amino acids
-    @param chainType: str. "l" if residues are from ligand or "r" if they are from receptor
-    @return summary: pandas.DataFrame. A DataFrame that has the following columns:
+    :param prefix: str. An id for the complex
+    :param res_pos: set(str[])). A set of resIds that are part of the interface. E.x. set(["A_32","*_13"])
+    :param res_all: set(str[])). A set of all resIds that are part of the protein. E.x. set(["A_32","*_13"])
+    :param scoresDict:{str:float} {ChainId_resId: interface_score}. The scores for each of the amino acids
+    :param chainType: str. "l" if residues are from ligand or "r" if they are from receptor
+    :return summary: pandas.DataFrame. A DataFrame that has the following columns:
                           auc_%s prec_%s  reca_%s mcc_%s where %s is L or R
                      This DataFrame will have just one row. All evaluation metrics are computing at binding site level
   '''
@@ -104,12 +101,12 @@ def evaluateBothBindingSites(prefix, res_posL, res_allL, scoresDictL, res_posR, 
     gets auc_score and matthews_corrcoef, precision and recall at a threshold computed 
     with getThr()
 
-    @param prefix: str. An id for the complex
-    @param res_posL: set(str[])). A set of resIds that are part of the ligand interface. E.x. set(["A_32","*_13"])
-    @param res_allL: set(str[])). A set of all resIds that are part of the ligand. E.x. set(["A_32","*_13"])
-    @param scoresDictL:{str:float} {ChainId_resId: interface_score}. The scores for each of the amino acids of the ligand
-    @param  scoreThr: float.  scoreThr= 0.050700 for mixed_2 best mcc.  scoreThr= 0.036700 for seq best mcc 
-    @return summary: pandas.DataFrame. A DataFrame that has the following columns:
+    :param prefix: str. An id for the complex
+    :param res_posL: set(str[])). A set of resIds that are part of the ligand interface. E.x. set(["A_32","*_13"])
+    :param res_allL: set(str[])). A set of all resIds that are part of the ligand. E.x. set(["A_32","*_13"])
+    :param scoresDictL:{str:float} {ChainId_resId: interface_score}. The scores for each of the amino acids of the ligand
+    :param  scoreThr: float.  scoreThr= 0.050700 for mixed_2 best mcc.  scoreThr= 0.036700 for seq best mcc
+    :return summary: pandas.DataFrame. A DataFrame that has the following columns:
                           auc_bs prec_bs reca_bs mcc_bs
                      This DataFrame will have just one row. All evaluation metrics are computing at binding site level
   '''
@@ -133,15 +130,15 @@ def getThr(scoresList_all, idsList_all, accessSet):
       n=6.1N**0.3 where n is the expected number of interface residues and N is the number of
       accesible residues
       
-    @param scoresList_all: float[]. A list of all the binding-site scores of residues that belongs to 
+    :param scoresList_all: float[]. A list of all the binding-site scores of residues that belongs to
                                     the receptor or the ligand.
-    @param idsList_all: str[]. A set of resIds that are part of the receptor or the ligand. 
+    :param idsList_all: str[]. A set of resIds that are part of the receptor or the ligand.
                                      E.x. set(["A_32","*_13"])
                                      
-    @param accessSet: set(str[])). A set of resIds (belonging to receptor or ligand) that are accesible
+    :param accessSet: set(str[])). A set of resIds (belonging to receptor or ligand) that are accesible
                                      E.x. set(["A_32","*_13"])                                     
 
-    @return thr: float. The score value such that residues with greater score than thr will be considered as positive
+    :return thr: float. The score value such that residues with greater score than thr will be considered as positive
                         and residues with less score that thr will be considered as negative.
   '''
   nAcces= len(accessSet)
@@ -159,16 +156,16 @@ def getInterfaceStatis(scoresOrig, labelsOrig, resIdsOrig, resIdsSubset=None, th
   '''
     Computes statistics (auc, precision, recall, mcc) for interface prediction evaluation at a given threshold
 
-    @param scoresOrig: float[]. A list of the binding-site scores of all residues 
-    @param labelsOrig: int[].   A list of the labels of all residues. (Same order than scoresOrig)
-    @param resIdsOrig: str[].   A list of resIds of all residues. (Same order than scoresOrig). E.x. ["A_32", "*_13"]
+    :param scoresOrig: float[]. A list of the binding-site scores of all residues
+    :param labelsOrig: int[].   A list of the labels of all residues. (Same order than scoresOrig)
+    :param resIdsOrig: str[].   A list of resIds of all residues. (Same order than scoresOrig). E.x. ["A_32", "*_13"]
     
-    @param resIdsSubset: set(str[]). A set of resIds that are wanted to evaluate (resIdsSubset is a subset of 
+    :param resIdsSubset: set(str[]). A set of resIds that are wanted to evaluate (resIdsSubset is a subset of
                                      resIdsOrig). If None, all residues in resIdsOrig will be evaluated.
-    @param thr: float. A threshold to decide whether or not an amino acid belongs to the binding-site. precision, 
+    :param thr: float. A threshold to decide whether or not an amino acid belongs to the binding-site. precision,
                        recall and mcc will be calculated using this threshold.
     
-    @return (auc, precision, recall, mcc), ids_list.
+    :return (auc, precision, recall, mcc), ids_list.
               auc: float.
               precision: float.
               recall: float.
@@ -207,12 +204,12 @@ def getClassPredsOnChain( predIdsDict, allIds, posIds):
     Extracts from the inputs a list of scores, a list of labels and a list of resIds, keeping the
     same order
 
-    @param predIdsDict: {resId:score } A dict with resIds as keys and binding-site scores as values
-    @param allIds: set(str[]).         A set of resIds of all residues. E.x. set(["A_32", "*_13"])
-    @param posIds: set(str[]).         A set of resIds of  residues that belongs to the interface. 
+    :param predIdsDict: {resId:score } A dict with resIds as keys and binding-site scores as values
+    :param allIds: set(str[]).         A set of resIds of all residues. E.x. set(["A_32", "*_13"])
+    :param posIds: set(str[]).         A set of resIds of  residues that belongs to the interface.
                                        E.x. set(["A_32", "*_13"])
         
-    @return (scores, labels, resIds)
+    :return (scores, labels, resIds)
             scores. float[]
             labels. int[]
             resIds. str[]
@@ -237,14 +234,15 @@ def loadAccesibility(pdbId, chainType="l", rasaThr=10.0):
     Loads psaia files for por a given pdbId and returns a set of accesible
     resIds and non-accesible resIds.
 
-    @param pdbId: str. The identifier for pdb file
-    @param chainType: str. "l" for ligan and "r" for receptor
-    @param rasaThr: float. A threshold of relative asa to decide whether or not a residue is accesible or not
+    :param pdbId: str. The identifier for pdb file
+    :param chainType: str. "l" for ligan and "r" for receptor
+    :param rasaThr: float. A threshold of relative asa to decide whether or not a residue is accesible or not
         
-    @return (accesibleSet, nonAccesibleSet)
+    :return (accesibleSet, nonAccesibleSet)
         accesibleSet: set(str[]). Set of resIds of residues that are accesible according to PSAIA and the threshold
         nonAccesibleSet: set(str[]). Set of resIds of residues that are non-accesible according to PSAIA and the threshold
   '''
+  PSAIA_PATH = os.path.join(Configuration().computedFeatsRootDir, "structStep/PSAIA/procPSAIA")
   accesibleSet=set([])
   nonAccesibleSet=set([])
   for fname in os.listdir(PSAIA_PATH):

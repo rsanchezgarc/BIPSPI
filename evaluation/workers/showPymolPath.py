@@ -1,7 +1,7 @@
 import pymol
 import os
 from Bio.PDB.Polypeptide import one_to_three, PPBuilder
-from computeFeatures.structStep.myPDBParser import myPDBParser as PDBParser
+from pythonTools.myPDBParser import myPDBParser as PDBParser
 from computeFeatures.common.boundUnboundMapper import BoundUnboundMapper
 
 

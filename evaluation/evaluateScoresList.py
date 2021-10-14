@@ -3,7 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interp
-
+'''
+This is a helper function used by other components.
+'''
 def evaluateScoresLists(allLabels, allScores, summaryDf, meanAuc, rocCurves=None):
   roc_auc= roc_auc_score(allLabels, allScores)
   if rocCurves:

@@ -6,9 +6,9 @@ preproc<-function(scoresDf){
     # print("fixing scoreDf")
     i<-1
     numElem<-c()
-    # print (sort(unique(scoreDf$structResIdL)))
-    for(lIndex in sort(unique(scoreDf$structResIdL))){
-      numElem[i]<-nrow(scoreDf[scoreDf$structResIdL==lIndex,])
+    # print (sort(unique(scoreDf$resIdL)))
+    for(lIndex in sort(unique(scoreDf$resIdL))){
+      numElem[i]<-nrow(scoreDf[scoreDf$resIdL==lIndex,])
       i<-i+1
     }
     # print(numElem)
@@ -22,14 +22,14 @@ preproc<-function(scoresDf){
 #       print(which.min(count))
       # print(names(which.min(count)))
       badIndexes<- which(numElem==as.integer(names(which.min(count))))
-      badLIndex<- sort(unique(scoreDf$structResIdL))[badIndexes]
+      badLIndex<- sort(unique(scoreDf$resIdL))[badIndexes]
       for(i in badLIndex){
-        scoreDf<-scoreDf[!scoreDf$structResIdL==i,]
+        scoreDf<-scoreDf[!scoreDf$resIdL==i,]
       }
 
     }
-#     print(sort(unique(scoreDf$structResIdL)))
-#     print(sort(unique(scoreDf$structResIdR)))
+#     print(sort(unique(scoreDf$resIdL)))
+#     print(sort(unique(scoreDf$resIdR)))
     return(scoreDf)
   }
   
@@ -48,8 +48,8 @@ preproc<-function(scoresDf){
 #       print("despues")
 #       print(dim(temDf))
       # if (sum(temDf$categ==1)==0){next}
-      dataFrameList[[k]]<- temDf[order(temDf$structResIdL,
-                                       temDf$structResIdR),]
+      dataFrameList[[k]]<- temDf[order(temDf$resIdL,
+                                       temDf$resIdR),]
       
       k<- k +1
     }
@@ -59,9 +59,9 @@ preproc<-function(scoresDf){
 }
 
 getScoreMatrixFromDf<-function(scoreDf){
-  scoreDf<- scoreDf[order(scoreDf$structResIdL,
-                    scoreDf$structResIdR),]
-  lenSeq1<-length(unique(scoreDf$structResIdL))
+  scoreDf<- scoreDf[order(scoreDf$resIdL,
+                    scoreDf$resIdR),]
+  lenSeq1<-length(unique(scoreDf$resIdL))
   scoreMat<-matrix(scoreDf$prediction,
                    nrow=lenSeq1,byrow=TRUE)
   return(scoreMat)
@@ -69,9 +69,9 @@ getScoreMatrixFromDf<-function(scoreDf){
 }
 
 getActualMatrixFromDf<-function(scoreDf){
-  scoreDf<- scoreDf[order(scoreDf$structResIdL,
-                          scoreDf$structResIdR),]
-  lenSeq1<-length(unique(scoreDf$structResIdL))
+  scoreDf<- scoreDf[order(scoreDf$resIdL,
+                          scoreDf$resIdR),]
+  lenSeq1<-length(unique(scoreDf$resIdL))
   actualMat<-matrix(scoreDf$categ,
                     nrow=lenSeq1,byrow=TRUE)
   return(actualMat)
@@ -83,8 +83,8 @@ getDfFromScoreMatrix<-function(scoreMatrix,origDf){
 #   print("Computing again df")
 #   print(dim(scoreMatrix))
 #   print(nrow(origDf))
-  origDf<- origDf[order(origDf$structResIdL,
-                          origDf$structResIdR),]
+  origDf<- origDf[order(origDf$resIdL,
+                          origDf$resIdR),]
   prediction<-c(t(scoreMatrix))
   #Esto es una prueba
   # origDf$prediction<-prediction

@@ -5,6 +5,9 @@ import numpy as np
 from evaluation.evaluateScoresList import evaluateScoresLists
 from trainAndTest.resultsManager import ResultsManager
 
+SKIP_LOWER=True
+
+
 def reEvaluate(resultsPath, newResultsPath=None):
 
   allScores=[]
@@ -12,14 +15,15 @@ def reEvaluate(resultsPath, newResultsPath=None):
   listDf=[]
   roc_aucs_list= []
   for fname in sorted(os.listdir(resultsPath)):
-    if not fname.endswith(".res.tab"): continue
+    if not (fname.endswith(".res.tab") or fname.endswith(".res.tab.gz")): continue
+    if SKIP_LOWER and fname[:4].islower(): continue
     res= ResultsManager.loadExistingResults ( os.path.join(resultsPath, fname) )
     oneComplexDf= res.getFullEvaluation()
     scores, labels= res.bindingSiteScoresAndLabels()
     allScores+= scores 
     allLabels+= labels
     roc_aucs_list.append( roc_auc_score( labels, scores))
-    print("%s: %f auc"%(fname, roc_aucs_list[-1]))
+    print("%s: %f auc binding site"%(fname, roc_aucs_list[-1]))
     listDf.append(oneComplexDf)
     if not newResultsPath is None:
       outName= os.path.join(newResultsPath, fname)

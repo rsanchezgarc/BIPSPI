@@ -34,8 +34,8 @@ def loadResults(prefix, resultsPath, filterBy=FILTER_BY, thr=RESULTS_THR):
   if not os.path.isfile(fname):
     fname= os.path.join(resultsPath, prefix+".cMap.tab")  
   df_pair= pd.read_table(fname,sep='\s+', header='infer', comment="#", 
-                        dtype= {"chainIdL":str, "chainIdR":str, "structResIdL":str, "structResIdR":str,
-                                 "chainId":str, "structResId":str, "chain":str,  "resIds":str})
+                        dtype= {"chainIdL":str, "chainIdR":str, "resIdL":str, "resIdR":str,
+                                 "chainId":str, "resId":str, "chain":str,  "resIds":str})
   pickColNum= list(df_pair.columns).index(filterBy)
 
   return fromDfToResIds(df_pair, pickColNum, thr)

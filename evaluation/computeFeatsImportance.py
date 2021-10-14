@@ -9,29 +9,28 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
 
-modelPath="/home/rsanchez/Tesis/rriPredMethod/pyCode/webApp/rriPredWeb/media/xgbModels/model.mixed"
-#modelPath="/home/rsanchez/Tesis/rriPredMethod/pyCode/webApp/rriPredWeb/media/xgbModels/model.mixed_2"
-
-#modelPath="/home/rsanchez/Tesis/rriPredMethod/pyCode/webApp/rriPredWeb/media/xgbModels/model.seq"
-
-#modelPath="/home/rsanchez/Tesis/rriPredMethod/data/joanDimers/pdbFiles_117/modelsComputed/model.mixed"
-#modelPath="/home/rsanchez/Tesis/rriPredMethod/data/develData/modelsComputed/model.mixed_2"
-if len(sys.argv)==2:
+SAVE_FIGURES=False
+modelPath="/home/rsanchez/Tesis/rriPredMethod/data/develData/modelsComputed/model.struct_2"
+featurePath="/home/rsanchez/Tesis/rriPredMethod/data/develData/codifiedInput/struct_2/sampledInputs/1ACB@00.train.pkl.gz"
+if len(sys.argv)>=2:
   modelPath= os.path.abspath(os.path.expanduser(sys.argv[1]))
 
-if modelPath.endswith("seq"):
-  FIGNAME= 'Importance of features in seq classifier'
-  featurePath="/home/rsanchez/Tesis/rriPredMethod/data/bench5Data/newCodeData/campins_wd/codifiedInput/seq/sampledInputs/1A2K.train.pkl.gz"
-elif modelPath[-1]=="2":
-  FIGNAME= 'Importance of features in 2-steps classifier'
-  featurePath="/home/rsanchez/Tesis/rriPredMethod/data/bench5Data/newCodeData/campins_wd/codifiedInput/mixed_2/sampledInputs/1A2K.train.pkl.gz"
-else:
-  FIGNAME= 'Importance of features in 1-step classifier'
-  featurePath="/home/rsanchez/Tesis/rriPredMethod/data/bench5Data/newCodeData/campins_wd/codifiedInput/mixed/sampledInputs/1A2K.train.pkl.gz"
+if len(sys.argv)==3:
+  featurePath= os.path.abspath(os.path.expanduser(sys.argv[2]))
+if SAVE_FIGURES:
+  if modelPath.endswith("seq"):
+    FIGNAME= 'Importance of features in seq classifier'
+  elif modelPath[-1]=="2":
+    FIGNAME= 'Importance of features in 2-steps classifier'
+  else:
+    FIGNAME= 'Importance of features in 1-step classifier'
 
-def get_xgb_imp(xgb, feat_names):
-  imp_vals = xgb.booster().get_fscore()
-  imp_dict = {feat_names[i]:float(imp_vals.get('f'+str(i),0.)) for i in range(len(feat_names))}
+else:
+  FIGNAME=None
+  
+def get_xgb_imp(model, feat_names):
+  imp_vals = model.feature_importances_
+  imp_dict = {feat_names[i]:imp_vals[i] for i in range(len(feat_names))}
   total = array(imp_dict.values()).sum()
   return sorted([(k,v/total) for k,v in imp_dict.items()], key=lambda x: x[1])
   
@@ -72,14 +71,15 @@ def importancePerGroup(modelPath, featurePath, figName= FIGNAME):
   featsNames= df[0]
   df.columns= ["featName", "featImp"]
 
-  typesOfFeatures= {"Conservation":[".*pssm.*", ".*seqEntropy.*", ".*score.*"], "AA Symbol":[".*resName.*"],
+  typesOfFeatures= {"Conservation":[".*pssm.*", ".*psfm.*", ".*information.*", ".*al2coScore.*"], 
+  "AA Symbol":[".*aaWin.*"],
   "HS exposure":[".*Exposure.*"],
   "2nd structure":[".*2ndStruct.*", ".*score_P.*"], "Accesibility":[".*ASA.*", ".*score_asa.*"], 
   "Hydrophobicity":[".*Hydrophobicity.*"], "Depth index":[".*DPX.*"], "Protrusion index":[".*CX.*"],
   "Prev step score":[".*prediction.*"], "SeqLen": [".*sequence length.*"]}
 
   
-  typesOfFeatures= {"environment-struct":["^.*Aggr.*"],"environment-seq":["^resNameWin.*", "^pssm\..*", "^seqEntropy\..*"]}
+#  typesOfFeatures= {"environment-struct":["^.*Aggr.*"],"environment-seq":["^aaWin.*", ".*psfmWin.*", "^pssmWin\..*", "^informationWin\..*"]}
   
   summary={"feat_type":[], "num_variables":[], "mean_importance":[], "sum_importance":[], "max_importance":[]}
   featsNamesSet= set(featsNames)
@@ -104,7 +104,7 @@ def importancePerGroup(modelPath, featurePath, figName= FIGNAME):
     
   nonInvolvedNames= featsNamesSet.difference( involvedNames)
   involvedRows=[ i for i,name in enumerate(featsNames) if name in nonInvolvedNames]
-  featType= "single residue/pair"
+#  featType= "single residue/pair"
   typesOfFeatures[featType]=None
   if len(matchesRows)!=0:
     importanceVals= df["featImp"][involvedRows]
@@ -128,18 +128,25 @@ def importancePerGroup(modelPath, featurePath, figName= FIGNAME):
   plt.rc('ytick', labelsize=8)
   plt.rc('axes', labelsize=8)
   
+
   fig = plt.figure(figsize=(7.2,(3/5.0)*7.2))
   fig.suptitle(figName, fontsize=10, fontweight='bold')
-
-  colorsDict= { name: color for name, color in zip(typesOfFeatures, plt.cm.Paired(np.linspace(0., 1., len(typesOfFeatures))))}  
-  colors=[ colorsDict[name] for name in summary["feat_type"]]
+  #THIS IS WHERE OTHERS IS ADDED
+  namesOfTypesOfFeatures= list(summary["feat_type"])+["others"]
+  importanceValuesForPie= list(summary["sum_importance"])+[1- np.sum(summary["sum_importance"])]
   
+  colorsDict= { name: color for name, color in zip(namesOfTypesOfFeatures, plt.cm.Paired(np.linspace(0., 1., len(namesOfTypesOfFeatures))))}  
+  colors=[ colorsDict[name] for name in namesOfTypesOfFeatures]
+
+
   gridspec.GridSpec(6,6)
   ax= plt.subplot2grid((6,6), (0,0), colspan=3, rowspan=5)
   ax.set_title('global', fontsize=9, fontweight='bold')
-  patches, texts = ax.pie( summary["sum_importance"], startangle=100, colors= colors)
+
+  patches, texts = ax.pie( importanceValuesForPie, startangle=100, colors= colors)
   ax.legend( patches, labels=['%s, %2.2f %%' % (l, s*100.0) 
-              for l, s in zip(summary["feat_type"], summary["sum_importance"])] , loc="lower left", bbox_to_anchor=(.0,-.3))
+                    for l, s in zip(namesOfTypesOfFeatures, importanceValuesForPie)] , 
+             loc="lower left", bbox_to_anchor=(.0,-.3))
                             
   ax= plt.subplot2grid((6,6), (0,4), colspan=2, rowspan=5)
 
@@ -154,7 +161,8 @@ def importancePerGroup(modelPath, featurePath, figName= FIGNAME):
   ax.set_ylabel('mean importance per variable (%)')
 
   fig.subplots_adjust(left=.03, bottom=.1, right=.95, top=.90)
-  fig.savefig(figName.replace(" ","_")+".png", format="png")
+  if figName:
+    fig.savefig(figName.replace(" ","_")+".png", format="png")
   plt.show()
   return None
   

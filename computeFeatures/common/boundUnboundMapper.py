@@ -1,10 +1,12 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
+import os
 from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo as matlist
 from Bio.SVDSuperimposer import SVDSuperimposer
 import numpy as np
+from computeFeatures.toolManagerGeneric import threeLetterAA_to_one
 
-
+SKIP_MISMATCHES=True
 class BoundUnboundMapper(object):
   '''
   Used to compute resIds mapping from bound state to unbound state
@@ -12,12 +14,11 @@ class BoundUnboundMapper(object):
   scoreMat= matlist.blosum62
   def __init__(self, pp_list_unbound, pp_list_bound):
     '''
-      @param pp_list_unbound: [ Bio.PDB.Polypeptide]. list of Bio.PDB.Polypeptide's from unbound structure
-      @param pp_list_bound: [ Bio.PDB.Polypeptide]. list of Bio.PDB.Polypeptide's from bound structure
+      :param pp_list_unbound: [ Bio.PDB.Polypeptide]. list of Bio.PDB.Polypeptide's from unbound structure
+      :param pp_list_bound: [ Bio.PDB.Polypeptide]. list of Bio.PDB.Polypeptide's from bound structure
     '''
     self.pp_list_unbound= pp_list_unbound
     self.pp_list_bound= pp_list_bound
-
     self.sequencesUnbound= self.retrieveSeqsFormPP_list( pp_list_unbound)
     self.sequencesBound= self.retrieveSeqsFormPP_list( pp_list_bound)
 
@@ -28,54 +29,51 @@ class BoundUnboundMapper(object):
   def retrieveSeqsFormPP_list(self, pp_list):
     seqsList=[]
     for pp in pp_list:
-#      print(pp, pp.get_sequence())
-      seq= str(pp.get_sequence()).replace("-","")
+      seq=  "".join([ threeLetterAA_to_one(aa.resname) for aa in pp ]).replace("-","")
       nXs= sum([1 for elem in seq if elem=="X"])
       if nXs< len(seq)*0.5: #skip seq if contains more than 50% of non aminoacids
         seqsList.append(seq)
-    return seqsList
-
+        
+    return seqsList    
+    
   def build_correspondence(self):
     '''
       fill in self.boundToUnboundDict  {res_id_bound -->res_id_unbound}
       To do so first computes _all_against_all_ali() and them matches chains that
       have the best structural aligment score. After that, residues of matches chains 
       are mapped thanks to a sequence alignment 
-    '''
+    '''  
     aligU2BDictsTable, aligU2BScores = self._all_against_all_alig()
     n2Take= max(aligU2BScores.shape)
     maxVal= np.max(aligU2BScores)+ 1e-4
     bestScore= np.min(aligU2BScores)
-    bestScoreThr= max(10, bestScore)
-#    print(n2Take, bestScoreThr)
-#    print(aligU2BScores); raw_input("enter")
+    bestScoreThr= max(10., bestScore)   
     while n2Take>0 and bestScore<= bestScoreThr:
       argbest= np.where(aligU2BScores==bestScore)
       unboundInd= argbest[0][0]
       boundInd=   argbest[1][0]
-#      print(aligU2BScores)
-#      print("Map in this step:", unboundInd, boundInd)
+      one_key= list(aligU2BDictsTable[unboundInd][boundInd].keys())[0]
+      print("equivChains_bound/unbound", os.path.basename(one_key.get_full_id()[0]).split("_")[0],"->", 
+              one_key.get_full_id()[-2], 
+              aligU2BDictsTable[unboundInd][boundInd][one_key].get_full_id()[-2].replace(" ","+"))
       aligU2BScores[unboundInd, boundInd]+= maxVal
       n2Take-=1
       bestScore= np.min(aligU2BScores)
       self.boundToUnboundDict.update(aligU2BDictsTable[unboundInd][boundInd])
 
-#    print(aligU2BScores)
-####    print(self.boundToUnboundDict)
-#    raw_input("enter")
     return None
     
   def build2SeqsDictMap(self,  nSeqUnbound, seq_u, nSeqBound, seq_b):
     '''
       reads a seq aligment between 2 sequences and creates 2 dictionaries
       that maps bound to unbound residues and CA atoms boundToUnboundResDict, atomBoundToUnboundMap.
-      @param nSeqUnbound: int. The index of the bound sequence that will be aligned
-      @param seq_u: str. The alignment result for unbound sequence number nSeqUnbound
-      @param nSeqBound: int. The index of the bound sequence that will be aligned
-      @param seq_b: str. The alignment result for bound sequence number nSeqBound
-      @return boundToUnboundResDict. {Bio.PDB.Residue_bound --> Bio.PDB.Residue_unbound}
-      @return atomBoundToUnboundMap. {Bio.PDB.Atom_bound --> Bio.PDB.Atom_unbound} CA atoms    
-    '''
+      :param nSeqUnbound: int. The index of the bound sequence that will be aligned
+      :param seq_u: str. The alignment result for unbound sequence number nSeqUnbound
+      :param nSeqBound: int. The index of the bound sequence that will be aligned
+      :param seq_b: str. The alignment result for bound sequence number nSeqBound
+      :return boundToUnboundResDict. {Bio.PDB.Residue_bound --> Bio.PDB.Residue_unbound}
+      :return atomBoundToUnboundMap. {Bio.PDB.Atom_bound --> Bio.PDB.Atom_unbound} CA atoms
+    '''    
     pp_u= self.pp_list_unbound[nSeqUnbound]
     pp_b= self.pp_list_bound[nSeqBound]
     boundToUnboundResDict= {}
@@ -83,15 +81,12 @@ class BoundUnboundMapper(object):
     b_index= -1
     u_index=-1    
     for u_letter, b_letter in zip(seq_u, seq_b):
-  #        print(u_letter, b_letter, u_index, b_index)
-  #        raw_input()
       if u_letter !="-":
         u_index+=1
       if b_letter !="-":
         b_index+=1
-      if u_letter !="-" and b_letter !="-":
+      if u_letter !="-" and b_letter !="-" and (not SKIP_MISMATCHES or u_letter==b_letter):
         boundToUnboundResDict[ pp_b[b_index] ]= pp_u[u_index]
-#        print pp_b[b_index], pp_u[u_index]
         atom_b= pp_b[b_index]["CA"] if "CA" in pp_b[b_index] else None
         atom_u= pp_u[u_index]["CA"] if "CA" in pp_u[u_index] else None
         if not atom_b is None and not atom_u is None:    
@@ -104,11 +99,11 @@ class BoundUnboundMapper(object):
     rmsd (aligU2BScores)
     Do seq aligment of all bound seqs agains all unbound seqs and builds a table of
     seq aligments aligU2BTable
-    @return aligU2BTable: nxm list of floats, being each element a dict that maps each of the residues of
+    :return aligU2BTable: nxm list of floats, being each element a dict that maps each of the residues of
                            chain_u_i with their equivalent residues chain_b_i
-    @return aligU2BScores: nxm list of floats, being each element rmsd of structural aligment of
+    :return aligU2BScores: nxm list of floats, being each element rmsd of structural aligment of
                            chain_u_i chain_b_i
-    '''
+    '''     
     aligU2BTable= []
     aligU2BScores=[]
     for nSeqUnbound, seqUnbound in enumerate(self.sequencesUnbound):
@@ -125,13 +120,13 @@ class BoundUnboundMapper(object):
   def getRMSD(self, nSeqUnbound, seqUnboundAli, nSeqBound, seqBoundAli):
     '''
     Computes rmsd for nSeqUnbound chain unbound and nSeqBound bound chain
-    @param nSeqUnbound: int. The index of the bound sequence that will be aligned
-    @param seqUnboundAli: str. The alignment result for unbound sequence number nSeqUnbound
-    @param nSeqBound: int. The index of the bound sequence that will be aligned
-    @param seqBoundAli: str. The alignment result for bound sequence number nSeqBound
-    @return rmsd. float. Root mean square deviation of CA of both imput chains
-    @return boundToUnboundResDict. {Bio.PDB.Residue_bound --> Bio.PDB.Residue_unbound}
-    '''
+    :param nSeqUnbound: int. The index of the bound sequence that will be aligned
+    :param seqUnboundAli: str. The alignment result for unbound sequence number nSeqUnbound
+    :param nSeqBound: int. The index of the bound sequence that will be aligned
+    :param seqBoundAli: str. The alignment result for bound sequence number nSeqBound
+    :return rmsd. float. Root mean square deviation of CA of both imput chains
+    :return boundToUnboundResDict. {Bio.PDB.Residue_bound --> Bio.PDB.Residue_unbound}
+    '''     
     boundToUnboundResDict, atomBoundToUnboundMap= self.build2SeqsDictMap(nSeqUnbound, seqUnboundAli, nSeqBound, seqBoundAli)
     atoms_x, atoms_y= zip(* atomBoundToUnboundMap)
     coords_x= np.array([elem.get_coord() for elem in atoms_x])
@@ -144,12 +139,12 @@ class BoundUnboundMapper(object):
   def _alig_seq(self, seq1, seq2):
     '''
     aligns seq1 against seq2.
-    @param seq1: str. Sequence 1
-    @param seq1: str. Sequence 2
-    @return seq1Aligment. str.
-    @return seq2Aligment. str
-    @return seqScore. float    
-    '''
+    :param seq1: str. Sequence 1
+    :param seq1: str. Sequence 2
+    :return seq1Aligment. str.
+    :return seq2Aligment. str
+    :return seqScore. float
+    '''      
     alignments = pairwise2.align.localds(seq1, seq2,BoundUnboundMapper.scoreMat, -11, -0.5)
 #    print(alignments[0][0])
 #    print(alignments[0][1])
@@ -161,8 +156,8 @@ class BoundUnboundMapper(object):
     '''
     Gets the equivalent unbound residue for a given bound residue
     
-    @param boundRes: Bio.PDB.Residue of bound structure
-    @return None if there is no equivalent residue or Bio.PDB.Residue if 
+    :param boundRes: Bio.PDB.Residue of bound structure
+    :return None if there is no equivalent residue or Bio.PDB.Residue if
               there is an equivalent unbound residue
     '''
     try:
@@ -171,6 +166,10 @@ class BoundUnboundMapper(object):
       return None
 
   def convertDictResis2Ids(self, residuesDict):
+    '''
+      given a dictionary with Bio.PDB.Residue's as values, turn it into a dictionary of
+      str's that represents chainIds and resIds
+    '''
     boundToUnboundDictFromChainResId= {  res.get_full_id(): residuesDict[res].get_full_id() 
                                                   for res in residuesDict}
     boundToUnboundDictFromChainResId= \
@@ -183,9 +182,9 @@ class BoundUnboundMapper(object):
     '''
     Gets the equivalent unbound residue for a given bound residue
     
-    @param chainId: str. Chain id for bound residue
-    @param resId: str. res id for bound residue
-    @return None if there is no equivalent residue or Bio.PDB.Residue if 
+    :param chainId: str. Chain id for bound residue
+    :param resId: str. res id for bound residue
+    :return None if there is no equivalent residue or Bio.PDB.Residue if
               there is an equivalent unbound residue    
     '''
     
@@ -200,9 +199,9 @@ class BoundUnboundMapper(object):
     '''
     Gets the equivalent bound residue for a given unbound residue
     
-    @param chainId: str. Chain id for unbound residue
-    @param resId: str. res id for unbound residue
-    @return None if there is no equivalent residue or Bio.PDB.Residue if 
+    :param chainId: str. Chain id for unbound residue
+    :param resId: str. res id for unbound residue
+    :return None if there is no equivalent residue or Bio.PDB.Residue if
               there is an equivalent unbound residue    
     '''
     if self.boundToUnboundDictFromChainResId is None:

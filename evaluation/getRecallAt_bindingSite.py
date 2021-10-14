@@ -39,8 +39,8 @@ def loadResults( resultsPath, fnameResults, cMapsPath=BINDING_CMAPS_PATH):
       #print(fnameResults, fname, prefix, os.path.join(cMapsPath,fname))
       if ((chainType=="l" and "_l_" in fname) or (chainType=="r" and "_r_" in fname)) and fname.startswith(prefix):
         df= pd.read_table(os.path.join(cMapsPath,fname),sep='\s+', header='infer', comment="#", 
-                          dtype= {"chainIdL":str, "chainIdR":str, "structResIdL":str, "structResIdR":str,
-                                        "chainId":str, "structResId":str,  "resId":str})
+                          dtype= {"chainIdL":str, "chainIdR":str, "resIdL":str, "resIdR":str,
+                                        "chainId":str, "resId":str,  "resId":str})
         for i in range(df.shape[0]):
           chainId, resId, categ= df.iloc[i,:]
           if categ==1:

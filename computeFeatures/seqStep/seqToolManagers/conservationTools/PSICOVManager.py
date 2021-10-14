@@ -1,34 +1,24 @@
 from __future__ import absolute_import, print_function
-import sys, os
-from subprocess import Popen, PIPE, check_output
-from Config import Configuration
-from utils import myMakeDir, tryToRemove #utils is at the root of the package
-import re
-import time
-
-from ..seqToolManager import  FeatureComputerException
+from subprocess import Popen, PIPE
+from utils import myMakeDir #utils is at the root of the package
 from .corrMutGeneric import CorrMutGeneric
-from utils import myMakeDir, tryToRemove #utils is at the root of the package
 
-HHBLITS_CMD_TEMPLATE=("%(hhblitsBin)s -i %(fastaInFname)s -n 4 -d %(hhblitsDB)s "+
-                "-oa3m %(aligsName)s -cpu %(psiBlastNThrs)d -ohhm %(profileNameRaw)s")
+HHBLITS_CMD_TEMPLATE=("%(hhBlitsBinPath)s/hhblits -i %(fastaInFname)s -n 4 -d %(hhblitsDB)s "+
+                "-oa3m %(aligsName)s -cpu %(hhBlitsNThrs)d -ohhm %(profileNameRaw)s -o /dev/null")
 class PsicovManager(CorrMutGeneric):
   '''
     Computes corrMut and processes their outputs. Extends class CorrMutGeneric
   '''
-  def __init__(self, seqsManager, outPath):
+  def __init__(self, computedFeatsRootDir):
     '''
-      @param seqsManager: ..manageSeqs.seqsManager.SeqsManager 
-      @param outPath: str. path where corrMut scores will be saved
+      :param outPath: str. path where corrMut scores will be saved
     '''  
-    CorrMutGeneric.__init__(self,seqsManager, outPath)
-    
-    self.seqsManager= seqsManager
-    self.corrMutOutPath= myMakeDir(outPath,"corrMut")
+    CorrMutGeneric.__init__(self, computedFeatsRootDir)
+    self.corrMutOutPath= myMakeDir(computedFeatsRootDir,"corrMut")
     self.featName="psicov"
  
   def lauchCorrMutProgram(self, aligFormatedName):
-    cmdArray=[self.psicovBin,"-p", "-z", str(self.psiBlastNThrs),"-d", "0.03", "-r", "0.001","-o", 
+    cmdArray=[self.psicovBin,"-p", "-z", str(self.corrMutNThrs),"-d", "0.03", "-r", "0.001","-o", 
               "-j", "0", aligFormatedName ]
     print(" ".join(cmdArray))
     process= Popen(cmdArray, stdout=PIPE, stderr=PIPE)
@@ -41,7 +31,7 @@ class PsicovManager(CorrMutGeneric):
           
   def processOutput(self, processOut):
     '''
-      @param processOut (stdin, stderr)
+      :param processOut (stdin, stderr)
     '''
     if len(processOut[1])>0 or  processOut[0]=="" or "*** Sorry" in processOut[0]: #Error happend
       print(processOut)

@@ -1,20 +1,33 @@
 import xgboost as xgb
 import numpy as np
 
-def trainMethod(trainData, trainLabels, verboseLevel=0, ncpu= 1):
+DEBUG=False
+USE_GPU= False
+def trainMethod(trainData, trainLabels, verboseLevel=0, ncpu= 1, useGpu=USE_GPU):
   print("Training shape %s"%(str(trainData.shape)))
-#  if trainData.shape[1]>1300:
-#    params= {'objective':'binary:logistic', 'n_estimators': 2000, 'subsample': 0.9, 'learning_rate': 0.1, 'max_depth': 12,
-#             'min_child_weight': 1, 'nthread': ncpu, 'silent': verboseLevel}
-#  else:
-#    params= {'objective':'binary:logistic','colsample_bytree': 0.9, 'learning_rate': 0.1, 'n_estimators': 1000,
-#             'subsample': 0.9, 'max_depth': 16, 'gamma': 0, 'nthread': ncpu, "silent": verboseLevel}
+
+# gpu params 'tree_method':"gpu_hist" max_bin':32, 'n_gpus':1
+
+#  params= {'objective':'binary:logistic', 'colsample_bytree': 0.9, 'learning_rate': 0.1, 'min_child_weight': 1,
+#           'n_estimators': 2000, 'subsample': 0.9, 'reg_lambda': 10.0, 'max_depth': 12, 'gamma': 0, 'nthread': ncpu}
 
   params= {'objective':'binary:logistic', 'colsample_bytree': 0.9, 'learning_rate': 0.1, 'min_child_weight': 1,
-           'n_estimators': 2000, 'subsample': 0.9, 'reg_lambda': 10.0, 'max_depth': 12, 'gamma': 0, 'nthread': ncpu}
+           'n_estimators': 2000, 'subsample': 0.9, 'reg_lambda': 10.0, 'max_depth': 12, 'gamma': 0, 'nthread': ncpu,
+           'tree_method':"hist", 'max_bin':32}  #scale_pos_weight= 3./1.
+
+  if useGpu:
+    params['tree_method']= "gpu_hist"
+    params['max_bin']= 32
+    params['n_gpus']= 1
+    params['predictor']= "cpu_predictor"
+  if DEBUG:
+    params[ 'n_estimators']= 20
+    print("WARNING: DEBUG MODE ")
+  print(params)
   modelo= xgb.XGBClassifier( **params)
   modelo.fit(trainData, trainLabels)
   return modelo
-  
+
 def predictMethod(modelo, testData):
+  print("Predict shape %s"%(str(testData.shape)))  
   return modelo.predict_proba(testData)[:,1]

@@ -1,13 +1,18 @@
 '''
-from https://stackoverflow.com/questions/11685716/how-to-extract-chains-from-a-pdb-file
+source: https://stackoverflow.com/questions/11685716/how-to-extract-chains-from-a-pdb-file
 '''
 import os
 from Bio import PDB
 try:
-  from computeFeatures.structStep.myPDBParser import myPDBParser as PDBParser
+  from pythonTools.myPDBParser import myPDBParser as PDBParser
 except ImportError:
   from Bio.PDB.PDBParser import PDBParser
 
+class NoChainInPdb(Exception):
+  def __init__(self, msg):
+    Exception.__init__(self, msg)
+    self.msg= msg
+    
 class ChainSplitter:
     def __init__(self, out_dir=None):
         """ Create parsing and writing objects, specify output directory. """
@@ -22,12 +27,12 @@ class ChainSplitter:
 
         Returns the path to the created file.
 
-        :param pdb_path: full path to the crystal structure
-        :param chain_letters: iterable of chain characters (case insensitive)
-        :param overwrite: write over the output file if it exists
-        :param rejectInsteadAccept: use SelectChainsReversed instead SelectChains
+        :param pdb_path: str. full path to the crystal structure
+        :param chain_letters: [str]. iterable of chain characters (case insensitive)
+        :param overwrite: boolean. write over the output file if it exists
+        :param rejectInsteadAccept: boolean. use SelectChainsReversed instead SelectChains
         """
-        chain_letters = [chain.upper() for chain in chain_letters]
+        chain_letters = [chain for chain in chain_letters]
 
         # Input/output files
         (pdb_dir, pdb_fn) = os.path.split(pdb_path)
@@ -54,7 +59,7 @@ class ChainSplitter:
         for chain in struct.get_chains():
           if chain.get_id() in chain_letters:
             abortExecution=False
-        if abortExecution: raise ValueError("Error: chains '%s' are not contained in pdb"%(", ".join(chain_letters)))
+        if abortExecution: raise NoChainInPdb("Error: chains '%s' are not contained in pdb"%(", ".join(chain_letters)))
         self.writer.set_structure(struct)
         if rejectInsteadAccept:
             self.writer.save(out_path, select=SelectChainsReversed(chain_letters))
@@ -85,7 +90,7 @@ if __name__ == "__main__":
     """ Parses PDB id's desired chains, and creates new PDB structures. """
     import sys
     if len(sys.argv) != 5:
-        print "Usage: $ python %s 'pdb_in' 'chain' 'pdb_outDir' '0/1 for exclude/include'" % __file__
+        print ("Usage: $ python %s 'pdb_in' 'chain' 'pdb_outDir' '0/1 for exclude/include'" % __file__)
         sys.exit()
     else:
         pdb_path= sys.argv[1]

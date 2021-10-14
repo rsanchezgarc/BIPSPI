@@ -7,15 +7,15 @@ from utils import openForReadingFnameOrGz
 
 def parsePsiBlast( inputSeq, psiBlastOut, seqIdlowCut=30, seqIdUpCut=95, evalueLowCut=1e-4, lengthlocut=11, qfraclocut=66):
   '''
-  @param inputSeq: str. An str that represents the input sequence
-  @param psiBlastOut: str. Fname to psiblast alignments output
-  @param seqIdlowCut: float. Lower cut-off for sequence identity with query (0 to 100%)
-  @param seqIdUpCut: float. Upper cut-off for sequence identity with query (0 to 100%)
-  @param evalueLowCut: float. Lower cut-off E-value
-  @param lengthlocut: float. Lower cut-off for filtering alignments by length (in amino acids)
-  @param qfraclocut: float. Lower cut-off for filtering alignments by percentage of query length (0 to 100%)
+  :param inputSeq: str. An str that represents the input sequence
+  :param psiBlastOut: str. Fname to psiblast alignments output
+  :param seqIdlowCut: float. Lower cut-off for sequence identity with query (0 to 100%)
+  :param seqIdUpCut: float. Upper cut-off for sequence identity with query (0 to 100%)
+  :param evalueLowCut: float. Lower cut-off E-value
+  :param lengthlocut: float. Lower cut-off for filtering alignments by length (in amino acids)
+  :param qfraclocut: float. Lower cut-off for filtering alignments by percentage of query length (0 to 100%)
   
-  @return List of psiblast hits [ hit ]
+  :return List of psiblast hits [ hit ]
   
     hit: Dictionary that contains information about one pairwise alignment between the query and the target
       e.g.  { 'targetId': 'UniRef90_K3ZEZ8', 'targetStartNum': 8, 'targetEndNum': 73, 'queryStartNum': 1, 'queryEndNum': 70, 
@@ -107,7 +107,7 @@ def parsePsiBlast( inputSeq, psiBlastOut, seqIdlowCut=30, seqIdUpCut=95, evalueL
 def overlap(previousEntry, currentEntry):
   '''
     Computes if two 
-    @param: entry. Represents a pairwise alignment
+    :param: entry. Represents a pairwise alignment
   '''
   oldStart, oldEnd= previousEntry["targetStartNum"], previousEntry["targetEndNum"]
   newStart, newEnd= currentEntry["targetStartNum"], currentEntry["targetEndNum"]

@@ -1,30 +1,34 @@
 import sys, os
 from subprocess import call
 
-
+try:
+  from downloadPdb import downloadPDB
+except ImportError:
+  from .downloadPdb import downloadPDB
+  
 pdbListFile="/home/rsanchez/Tesis/rriPredMethod/data/joanDimers/117_dimers_list.tsv"
 outPath="/home/rsanchez/Tesis/rriPredMethod/data/joanDimers/pdbFiles/rawPDBs"
 USE_BIO_UNIT=False
 
-def downloadPDB(pdbId, pdbOutPath, useBioUnit):
-## descargar pdb: wget ftp://ftp.wwpdb.org/pub/pdb/data/biounit/coordinates/all/1i1q.pdb2.gz  o ya descomprimido
-## wget -qO- ftp://ftp.wwpdb.org/pub/pdb/data/biounit/coordinates/all/1i1q.pdb2.gz |zcat  > 1i1q.pdb
+##def downloadPDB(pdbId, pdbOutPath, useBioUnit):
+#### descargar pdb: wget ftp://ftp.wwpdb.org/pub/pdb/data/biounit/coordinates/all/1i1q.pdb2.gz  o ya descomprimido
+#### wget -qO- ftp://ftp.wwpdb.org/pub/pdb/data/biounit/coordinates/all/1i1q.pdb2.gz |zcat  > 1i1q.pdb
 
-  outName= os.path.join(pdbOutPath,pdbId+'.pdb')
-  if not os.path.isfile(outName):
-    if useBioUnit:
-      cmd= 'wget -qO- ftp://ftp.wwpdb.org/pub/pdb/data/biounit/coordinates/all/%s.pdb1.gz |zcat  > %s'%(pdbId.lower(), outName)
-    else:
-      cmd= 'wget -qO- http://www.pdb.org/pdb/files/%s.pdb  | cat > %s'%(pdbId.upper(), outName)
-    print(cmd)
-    call(cmd, shell= True)
+##  outName= os.path.join(pdbOutPath,pdbId+'.pdb')
+##  if not os.path.isfile(outName):
+##    if useBioUnit:
+##      cmd= 'wget -qO- ftp://ftp.wwpdb.org/pub/pdb/data/biounit/coordinates/all/%s.pdb1.gz |zcat  > %s'%(pdbId.lower(), outName)
+##    else:
+##      cmd= 'wget -qO- http://www.pdb.org/pdb/files/%s.pdb  | cat > %s'%(pdbId.upper(), outName)
+##    print(cmd)
+##    call(cmd, shell= True)
     
-def downloadInFile(fname, outPath, useBioUnit=True):
+def downloadInFile(fname, outPath, useBioUnit):
   with open(fname) as f:
     for line in f:
       pdbId= line.split()[0]
       print(pdbId)
-      downloadPDB(pdbId, outPath, useBioUnit)
+      downloadPDB(pdbId, outPath, bioUnit= 0 if useBioUnit else None)
       
 if __name__=="__main__":
 

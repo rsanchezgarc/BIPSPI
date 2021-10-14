@@ -31,12 +31,12 @@ AA_as10Factor= {
 #      Loads all features files computed for ligand or receptor chains. Returns a pandas.DataFrame 
 #      that contains in each row all features from all files for each amino acid. Just amino acids
 #      that appears in each file will be included. Others will be ruled out (intersection)
-#      @param prefixOneChainType: str. A prefixOneChainType that identifies the receptor or ligand
-#      @param chainType: str. "l" for ligand and "r" for receptor
-#      @return df: pandas.DataFrame. A pandas.Dataframe in which each row represents
+#      :param prefixOneChainType: str. A prefixOneChainType that identifies the receptor or ligand
+#      :param chainType: str. "l" for ligand and "r" for receptor
+#      :return df: pandas.DataFrame. A pandas.Dataframe in which each row represents
 #                      one amino acid
 #                      Column names are:
-#                      'chainId%s', 'structResId%s', 'resName%s', [properties] #no defined order for properties
+#                      'chainId%s', 'resId%s', 'resName%s', [properties] #no defined order for properties
 #                      %s is L if chainType=="l" and R if  chainType=="r"
 #    '''
 #    singleChainFeats= super(StructProtocol,self).loadSingleChainFeatures( prefixOneChainType, chainType)

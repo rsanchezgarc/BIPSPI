@@ -5,14 +5,8 @@ from .workers.showPymolPath import showPDB_patches_all
 
 RESULTS_THR= 0.3
 
-#PDBs_PATH="/home/rsanchez/Tesis/rriPredMethod/data/bench5Data/b5structures"
-#RESULTS_PATH="~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results_xgb/mixed_2/"
-
 PDBs_PATH="/home/rsanchez/Tesis/rriPredMethod/data/develData/pdbFiles/"
 RESULTS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/develData/results/mixed_2/"
-
-#PDBs_PATH="/home/rsanchez/Tesis/rriPredMethod/data/partnerSpecificity/trimers/splitPDBs"
-#RESULTS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/partnerSpecificity/trimers/results/preds/mixed_2"
 
 #BINDING_CMAPS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/ppdockingBenchData/newCodeData/computedFeatures/common/contactMapsBinding"
 BINDING_CMAPS_PATH=None
@@ -23,8 +17,8 @@ def loadDfsCMap(prefix, chainType, cMapsPath= BINDING_CMAPS_PATH):
 #    print(fname, prefix, os.path.join(cMapsPath,fname))
     if ((chainType=="l" and "_l_" in fname) or (chainType=="r" and "_r_" in fname)) and fname.startswith(prefix):
       df= pd.read_table(os.path.join(cMapsPath,fname),sep='\s+', header='infer', comment="#", 
-                        dtype= {"chainIdL":str, "chainIdR":str, "structResIdL":str, "structResIdR":str,
-                                      "chainId":str, "structResId":str, "chain":str,  "resIds":str})
+                        dtype= {"chainIdL":str, "chainIdR":str, "resIdL":str, "resIdR":str,
+                                      "chainId":str, "resId":str, "chain":str,  "resIds":str})
       resultDF_list.append( df )
   df= pd.concat(resultDF_list)
   categColNum= list(df.columns).index("categ")
@@ -40,12 +34,18 @@ def fromDfToResIds(df, colNum, thr):
   
 def loadResults(prefix, resultsPath, filterBy="prediction", thr=RESULTS_THR):
   fnameRoot= os.path.join(resultsPath, prefix+".res.tab")
-  df_l= pd.read_table(fnameRoot+".lig",sep='\s+', header='infer', comment="#", 
-                        dtype= {"chainIdL":str, "chainIdR":str, "structResIdL":str, "structResIdR":str,
-                                 "chainId":str, "structResId":str, "chain":str,  "resIds":str})
-  df_r= pd.read_table(fnameRoot+".rec",sep='\s+', header='infer', comment="#", 
-                        dtype= {"chainIdL":str, "chainIdR":str, "structResIdL":str, "structResIdR":str,
-                                 "chainId":str, "structResId":str, "chain":str,  "resIds":str})
+  lFaname = fnameRoot+".lig"
+  if not os.path.isfile(lFaname):
+    lFaname+=".gz"
+  rFaname = fnameRoot+".rec"
+  if not os.path.isfile(rFaname):
+    rFaname+=".gz"
+  df_l= pd.read_table(lFaname,sep='\s+', header='infer', comment="#",
+                        dtype= {"chainIdL":str, "chainIdR":str, "resIdL":str, "resIdR":str,
+                                 "chainId":str, "resId":str, "chain":str,  "resIds":str})
+  df_r= pd.read_table(rFaname,sep='\s+', header='infer', comment="#",
+                        dtype= {"chainIdL":str, "chainIdR":str, "resIdL":str, "resIdR":str,
+                                 "chainId":str, "resId":str, "chain":str,  "resIds":str})
   pickColNum= list(df_l.columns).index(filterBy)
   return fromDfToResIds(df_l, pickColNum, thr), fromDfToResIds(df_r, pickColNum, thr)
   
@@ -63,7 +63,7 @@ def showOneComplex(prefix, thr= RESULTS_THR, resultsPath= os.path.expanduser(RES
 
 if __name__=="__main__":
     
-  options, remainder= getopt.getopt(sys.argv[1:], 'p:i:r:t',
+  options, remainder= getopt.getopt(sys.argv[1:], 'p:i:r:u:',
                                      ['prefix=',
                                       'inputFiles=',
                                       'resultsFiles=',
@@ -78,7 +78,7 @@ if __name__=="__main__":
       inputFiles = os.path.abspath(os.path.expanduser(arg))
     elif opt in ('-r', '--resultsFiles'):
       resultsFiles = os.path.abspath(os.path.expanduser(arg))
-    elif opt in ('-t', '--threshold'):
+    elif opt in ('-u', '--threshold'):
       print(opt, arg)
       thr = float(arg)
     elif opt in ('-p', '--prefix'):

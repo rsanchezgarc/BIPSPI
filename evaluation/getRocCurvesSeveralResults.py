@@ -7,29 +7,37 @@ import matplotlib.font_manager as font_manager
 from matplotlib import rcParams
 from scipy import interp
 
-fontpath = '/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf'
-prop = font_manager.FontProperties(fname = fontpath)
-rcParams['font.family'] = prop.get_name()
-rcParams['font.serif'] = ['Times New Roman']
-rcParams['text.usetex'] = True
+SKIP_LOWER=True
 
+fontpath =  None #'/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf'
+if fontpath:
+  prop = font_manager.FontProperties(fname = fontpath)
+  rcParams['font.family'] = prop.get_name()
+  rcParams['font.serif'] = ['Times New Roman']
+  rcParams['text.usetex'] = True
+
+
+SUBSET_FNAME= None # '/home2/jsegura/Tesis/rriPredMethod/data/bench5_new_code/bm90c_dimers_listUpper.tsv'
+INVERT_SELECTION=False
 
 EVAL_PAIRS_SCORE=False
 AVERAGE_PER_COMPLEX=False
 
 SAVE_FIG_NAME=None
-SAVE_FIG_NAME="ROC-and-precision-recall_DImS_struct_differentScoring_BIPSPI.png"
-#SAVE_FIG_NAME="ROC-and-precision-recall_DBv5_Pairs.png"
+# SAVE_FIG_NAME="/home2/jsegura/tmp/AUC_FIGURES/Figure_BM90C.png"
 
-def loadResults( resultsPath, prefix, evalPairsScores):
+def loadResults( resultsPath, prefix):
   if EVAL_PAIRS_SCORE:
     fname= os.path.join(resultsPath, prefix+".res.tab")
-    scoresDf= pd.read_table(fname, comment="#", sep="\s+", dtype={"structResIdL":str, 
-    "chainIdL":str, "structResIdR":str, "chainIdR":str})
+    if not os.path.isfile(fname): fname+=".gz"
+    scoresDf= pd.read_table(fname, comment="#", sep="\s+", dtype={"resIdL":str, 
+    "chainIdL":str, "resIdR":str, "chainIdR":str})
   else:
-    fname= os.path.join(resultsPath, prefix+".res.tab.rec")  
+    fname= os.path.join(resultsPath, prefix+".res.tab.rec")
+    if not os.path.isfile(fname): fname+=".gz"
     scoresDf1= pd.read_table(fname, comment="#", sep="\s+", dtype={"resId":str, "chainId":str})
-    fname= os.path.join(resultsPath, prefix+".res.tab.lig")  
+    fname= os.path.join(resultsPath, prefix+".res.tab.lig")
+    if not os.path.isfile(fname): fname+=".gz"
     scoresDf2= pd.read_table(fname, comment="#", sep="\s+", dtype={"resId":str, "chainId":str})
     scoresDf= pd.concat( [scoresDf1, scoresDf2])
   return list(scoresDf["categ"]), list(scoresDf["prediction"])
@@ -37,6 +45,9 @@ def loadResults( resultsPath, prefix, evalPairsScores):
 def plotSeveralPathsROC(dataSetName, resultsPath_list):
   rocCurves= []
   precRecallCurves=[]
+
+  if SUBSET_FNAME:
+    selectedPrefixes= set(pd.read_csv(SUBSET_FNAME, header=None, sep="\s+").iloc[:,0])
   for resultsPath in resultsPath_list:
     resultsPath, name= resultsPath.split(":")
     resultsPath= os.path.expanduser(resultsPath)
@@ -53,8 +64,14 @@ def plotSeveralPathsROC(dataSetName, resultsPath_list):
     nComplexes=0  #will be numpy array
     prefixes= sorted(set([ fname.split(".")[0] for fname in os.listdir(resultsPath)]))
     for prefix in sorted(prefixes):
+      if SKIP_LOWER and prefix[:4].islower(): continue
+      if SUBSET_FNAME:
+        if prefix in selectedPrefixes and INVERT_SELECTION:
+          continue
+        elif  not prefix in selectedPrefixes and not INVERT_SELECTION:
+          continue
       print(prefix)
-      results= loadResults( resultsPath, prefix, EVAL_PAIRS_SCORE)
+      results= loadResults( resultsPath, prefix)
       if results is None: continue
       labels, scores= results
       nComplexes+=1        
@@ -143,14 +160,14 @@ def plotSeveralPathsROC(dataSetName, resultsPath_list):
   ax.legend(loc="best", prop={'size': 8})
   fig.set_size_inches(17.8/2.54,8.6/2.54)
   if SAVE_FIG_NAME:  
-    fig.savefig(SAVE_FIG_NAME, format="png", dpi=350)
+    fig.savefig(SAVE_FIG_NAME, format="png", dpi=450)
   plt.show()
 
 
 if __name__=="__main__":
   '''
   example:
-python evaluation/getRocCurvesSeveralResults.py DBv5 ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results_xgb/mixed:struct-1step ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results_xgb/mixed_2:struct-2steps ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results_xgb/seq:seq 
+python evaluation/getRocCurvesSeveralResults.py DBv5 ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results_xgb/mixed:struct-1step ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results_xgb/mixed_2:struct-2steps ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results_xgb/seq:seq
 
 python evaluation/getRocCurvesSeveralResults.py DImS ~/Tesis/rriPredMethod/data/joanDimers/results/mixed:struct-1step ~/Tesis/rriPredMethod/data/joanDimers/results/mixed_2:struct-2step ~/Tesis/rriPredMethod/data/joanDimers/results/seq/:seq
 

@@ -2,7 +2,11 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
+import gzip
 from collections import Counter
+
+from collections import defaultdict
+
 from .evaluateResults import evaluateBindingSite, evaluateBothBindingSites, evaluatePairs, loadAccesibility
 pd.set_option('precision', 4)
 
@@ -13,68 +17,108 @@ EVALUATE_L_R_INDEPENDTLY= False
 class ResultsManager(object):
   '''
     This class will store predictions for one complex. It will also allow for results evaluations and
-    results writting to disk
+    results writing to disk
 
   '''
-  def __init__(self, prefix, prob_predictionsDir, prob_predictionsTrans, ids, doAverageScore=True):
+  def __init__(self, prefix, prob_predictionsDir, prob_predictionsTrans, ids, averageLRscores=False, doAverageScore=True):
     '''
       builder
  
-       @param prefix: str. An identifier of the pdb file.
-       @param prob_predictionsDir: float[]. scores for Residue Residue interaction for pairs in direct mode
+       :param prefix: str. An identifier of the pdb file.
+       :param prob_predictionsDir: float[]. scores for Residue Residue interaction for pairs in direct mode
                                             (first ligand amino acid, second receptor amino acid)
-       @param prob_predictionsTrans: float[]. scores for Residue Residue interaction for pairs in transpose mode
+       :param prob_predictionsTrans: float[]. scores for Residue Residue interaction for pairs in transpose mode
                                             (first receptor amino acid, second ligand amino acid). Same order
                                             than prob_predictionsDir
-       @param ids: str[]. ids of the pairs whose scores direct and transpose are prob_predictionsDir and 
+       :param ids: str[]. ids of the pairs whose scores direct and transpose are prob_predictionsDir and
                           prob_predictionsTrans. Same order than prob_predictionsDir
-       @param doAverageScore: boolean. If True:
+
+       :param averageLRscores: Used when L and R proteins are the same protein, and thus, average make sense
+
+       :param doAverageScore: boolean. If True:
                                           Final pair score will be mean of prob_predictionsDir and  prob_predictionsTrans
                                        else:
                                           Final pair score will be prob_predictionsDir                                      
     '''
-    
-    self.getInterfacesScores= self.getInterfacesScoresMiCount
-#    self.getInterfacesScores= self.getInterfacesScoresPairPred
-        
+
     self.prefix= prefix
-    self.prob_predictionsDir= prob_predictionsDir
-    self.prob_predictionsTrans= prob_predictionsTrans
+
     self.ids= ids
     self.testLabels= ids["categ"].values
-    
     self.performance_summary= None
-
-    if doAverageScore == True:
-      meanPairsScore= np.mean(np.concatenate( [[self.prob_predictionsDir],
-                                               [self.prob_predictionsTrans]], axis=0),axis=0)
-    else:
-      meanPairsScore= self.prob_predictionsDir
-
+    self.averageLRscores=averageLRscores
     self.resultsPairs= self.ids
-    self.resultsPairs["prediction"]= meanPairsScore
+
+    if not isinstance(prob_predictionsTrans, type(None)):
+      if doAverageScore:
+        print("performing direct-transponse average")
+        finalScores= np.mean(np.concatenate( [[prob_predictionsDir],
+                                             [prob_predictionsTrans]], axis=0),axis=0)
+        self.resultsPairs["prediction"]= finalScores
+      else:
+        self.resultsPairs["prediction"]= prob_predictionsDir
+
+
+      if averageLRscores:
+
+        idsToIndex= defaultdict(list)
+        idsToScores = defaultdict(list)
+        for index, row in self.resultsPairs.iterrows():
+          chainIdL, resIdL, __,chainIdR, resIdR = row[:5]
+
+          chainId_resId= chainIdL +"_"+ resIdL+ "_"+chainIdR+"_"+resIdR
+          idsToIndex[chainId_resId].append(index)
+          idsToScores[chainId_resId].append( row[-1] )
+
+          chainId_resId= chainIdR+"_"+resIdR+"_"+chainIdL+"_"+resIdL
+          idsToIndex[chainId_resId].append(index)
+          idsToScores[chainId_resId].append( row[-1] )
+
+        for chainId_resId, indices in idsToIndex.iteritems():
+          score= np.mean( idsToScores[chainId_resId] )
+          self.resultsPairs.iloc[indices, -1]= score
+
+
+    else:
+      self.resultsPairs["prediction"]= prob_predictionsDir
+
     self.resultsLigand, self.resultsRecep= self.getInterfacesScores(self.resultsPairs)
     self.l_residues_pos= None
     self.r_residues_pos= None
 
+  def getInterfacesScores(self, oneDf):
+    getInterfacesScores= self.getInterfacesScoresMiCount
+#    getInterfacesScores= self.getInterfacesScoresPairPred
+
+    scores_l, scores_r= getInterfacesScores(oneDf)
+
+
+    return scores_l, scores_r
+
+  def __getIdsForIntefaceHelper(self, oneDf, chainType):
+
+    chainType= chainType.upper()
+    resIds= oneDf["chainId%s"%chainType].map(str) + "_" +oneDf["resId%s"%chainType].map(str)
+    return resIds
     
   def getIdsForInteface(self, oneDf):
     '''
       Given a pandas.DataFrame that represents the pairwise predicitions, obtains
       the resIds that belongs to the ligand and to the receptor
        
-      @param oneDf: pandas.DataFrame. A data frame that has to have at least the following columns:
-                                        chainIdL structResIdL chainIdR structResIdR
-      @return l_res, r_res
+      :param oneDf: pandas.DataFrame. A data frame that has to have at least the following columns:
+                                        chainIdL resIdL chainIdR resIdR
+      :return l_res, r_res
               l_res: {resId: Number of times resId appears in a row}. For ligand amino acids
               r_res: {resId: Number of times resId appears in a row}. For receptor amino acids
                 Residues ids are form by concatenation of chainId and resId using as separator _
                  ("A", "123") --> "A_123"
     '''
-            
-    l_res= oneDf["chainIdL"].map(str) + "_" +oneDf["structResIdL"].map(str)
+
+    l_res= self.__getIdsForIntefaceHelper( oneDf, chainType="l")
     l_res= dict(Counter(l_res))
-    r_res= oneDf["chainIdR"].map(str) + "_" +oneDf["structResIdR"].map(str)
+    
+    r_res= self.__getIdsForIntefaceHelper( oneDf, chainType="r")
     r_res= dict(Counter(r_res))
     return l_res, r_res
 
@@ -83,9 +127,9 @@ class ResultsManager(object):
     '''
       returns a pd.DataFrame that contains results of pair predictions when (chainType=="p") or
       single chain predictions (when chainType=="r" or chainType=="l")
-      @param chainType: str. "p" for residue-residue predictions, "r" for receptor predictions and "l" for
+      :param chainType: str. "p" for residue-residue predictions, "r" for receptor predictions and "l" for
                              ligand predictions
-      @param removeCateg: boolean.  If removeCateg==False files for DataFrames will contain categ column,
+      :param removeCateg: boolean.  If removeCateg==False files for DataFrames will contain categ column,
     '''
     if chainType=="p":
       df= self.resultsPairs
@@ -106,8 +150,8 @@ class ResultsManager(object):
   def getSeqAverScore(self, scoresDict):
     '''
     Averages interface scores over sequence window of size 3
-    @param scoresDict: {str:float} {chainAndResId: binding-siteScore}
-    @return newScoresDict: {str:float} {chainAndResId: NewbindingSiteScore}
+    :param scoresDict: {str:float} {chainAndResId: binding-siteScore}
+    :return newScoresDict: {str:float} {chainAndResId: NewbindingSiteScore}
     '''
     if not DO_SEQ_AVER_BIND_SITE:
       return scoresDict
@@ -119,14 +163,19 @@ class ResultsManager(object):
       if chain not in chainsDict:
         chainsDict[chain]=[]
       score= scoresDict[elem]
-      chainsDict[chain].append( ((int(resId), ""), score) if resId[-1].isdigit() else ((int(resId[:-1]), resId[-1]), score ) )
+      if "#" in resId:
+        resId_= resId.split("#")[0]
+      else:
+        resId_= resId
+      chainsDict[chain].append( ((int(resId_), resId), score) if resId_[-1].isdigit() else 
+                                ((int(resId_[:-1]), resId), score )  )
     for chain in chainsDict:
       result= chainsDict[chain]
       result.sort(key= lambda x: x[0])
       ids, scores= zip(* result)
       scores= list(np.convolve(scores, np.array([1, 3, 1])/5.0, mode='same')+ np.array(scores))
       scores_list+= scores
-      ids_list+= [ chain+"_"+str(elem[0])+elem[1] for elem in ids]
+      ids_list+= [ chain+"_"+elem[1] for elem in ids]
     scores_dict= dict( zip(ids_list, scores_list))
     return scores_dict
   
@@ -138,9 +187,9 @@ class ResultsManager(object):
     count by 2**i. i ranges from 3 to 11. The sum of all those values will
     be the final score.
     
-    @param resDf: pandas.DataFrame. A DataFrame that represents the pairs predictions. It has the following columns:
-                          chainIdL structResIdL resNameL chainIdR structResIdR resNameR categ prediction
-    @return scores_l, scores_r
+    :param resDf: pandas.DataFrame. A DataFrame that represents the pairs predictions. It has the following columns:
+                          chainIdL resIdL resNameL chainIdR resIdR resNameR categ prediction
+    :return scores_l, scores_r
             scores_l: {resId: binding-site score}. Binding site score for each residue of the ligand
             scores_l: {resId: binding-site score}. Binding site score for each residue of the ligandeceptor
               Residues ids are form by concatenation of chainId and resId with _
@@ -159,9 +208,30 @@ class ResultsManager(object):
         scores_l[elem]+= pred_l_res[elem]/eval_at
       for elem in pred_r_res:
         scores_r[elem]+= pred_r_res[elem]/eval_at
+
     scores_l= self.getSeqAverScore(scores_l)
-    scores_r= self.getSeqAverScore(scores_r)
-    
+
+    if self.averageLRscores:
+      chainIdsL= predDf["chainIdL"].unique()
+      chainIdsR= predDf["chainIdR"].unique()
+      if len(chainIdsL)==1 and len(chainIdsR)==1 and chainIdsL[0]=="L" and chainIdsR[0]=="R": #In this case, sequences were provided
+        resIdL2RFun= lambda x: "R"+x[1:]
+        resIdR2LFun= lambda x: "L"+x[1:]
+      else:
+        resIdL2RFun = lambda x: x
+        resIdR2LFun = lambda x: x
+
+      scores_avg={}
+      for key in scores_l:
+        scores_avg[key]= 0.5*(scores_l[key]+scores_r[resIdL2RFun(key)])
+      scores_l= scores_avg.copy()
+      scores_l= self.getSeqAverScore(scores_l)
+      scores_r= scores_l.copy()
+      scores_r= { resIdR2LFun(key):scores_r[key] for key in scores_r }
+    else:
+      scores_r = self.getSeqAverScore(scores_r)
+
+
 #    scores_l= self.correctScoresWithNumResAcces(scores_l, chainType="l")
 #    scores_r= self.correctScoresWithNumResAcces(scores_r, chainType="r")
     
@@ -187,9 +257,9 @@ class ResultsManager(object):
     Computes binding-site scores from pairwise results contained in resDf
     To do so it employed pairPred strategy, f(a) = max(f_pair(a,bj))
     
-    @param resDf: pandas.DataFrame. A DataFrame that represents the pairs predictions. It has the following columns:
-                          chainIdL structResIdL resNameL chainIdR structResIdR resNameR categ prediction
-    @return scores_l, scores_r
+    :param resDf: pandas.DataFrame. A DataFrame that represents the pairs predictions. It has the following columns:
+                          chainIdL resIdL resNameL chainIdR resIdR resNameR categ prediction
+    :return scores_l, scores_r
             scores_l: {resId: binding-site score}. Binding site score for each residue of the ligand
             scores_l: {resId: binding-site score}. Binding site score for each residue of the ligandeceptor
               Residues ids are form by concatenation of chainId and resId with _
@@ -201,10 +271,12 @@ class ResultsManager(object):
 
     for chainId_resId in scores_l:
       chainId, resId= chainId_resId.split("_")
-      scores_l[chainId_resId]=np.max( resDf.loc[ (resDf["chainIdL"]==chainId) & (resDf["structResIdL"]==resId) , "prediction"])
+      resId= resId.split("#")[0]
+      scores_l[chainId_resId]=np.max( resDf.loc[ (resDf["chainIdL"]==chainId) & (resDf["resIdL"]==resId) , "prediction"])
     for chainId_resId in scores_r:
       chainId, resId= chainId_resId.split("_")
-      scores_r[chainId_resId]=np.max( resDf.loc[ (resDf["chainIdR"]==chainId) & (resDf["structResIdR"]==resId) , "prediction"])
+      resId= resId.split("#")[0]
+      scores_r[chainId_resId]=np.max( resDf.loc[ (resDf["chainIdR"]==chainId) & (resDf["resIdR"]==resId) , "prediction"])
     return scores_l, scores_r
     
   def bindingSiteScoresAndLabels(self):
@@ -228,19 +300,19 @@ class ResultsManager(object):
     '''
     Writes binding sites results to disk (ligand or receptor)
     
-    @param outName: str.  Ligand binding-site results
+    :param outName: str.  Ligand binding-site results
                           name will be outName+'lig' and Receptor binding-site results
                           name will be outName+'rec'
-    @param resultsOneProt: {str: float} {resId: binding_siteScore}. The binding-site score for all
+    :param resultsOneProt: {str: float} {resId: binding_siteScore}. The binding-site score for all
                            residues of ligand or receptor.
                            
-    @param chainType: str. "l" for ligand and "r" for receptor
+    :param chainType: str. "l" for ligand and "r" for receptor
     
-    @param removeCateg: boolean.  If removeCateg==False files for DataFrames will contain categ column,
+    :param removeCateg: boolean.  If removeCateg==False files for DataFrames will contain categ column,
 
     '''
-
-    fname= outName+".lig" if chainType=="l" else outName+".rec"
+    fname= outName.replace(".gz","")
+    fname= fname+".lig.gz" if chainType=="l" else fname+".rec.gz"
     residuesAtInterface= self.l_residues_pos if chainType=="l" else self.r_residues_pos
     
     if residuesAtInterface is None:
@@ -254,7 +326,7 @@ class ResultsManager(object):
     trueCategLabel, falseCategLabel= 1,-1
     if self.resultsPairs["categ"].isnull().values.all():
       trueCategLabel, falseCategLabel= np.nan, np.nan
-    with open(fname,"w") as f:
+    with gzip.open(fname,"w") as f:
       chainIds= []
       resIds= []
       scores= []
@@ -263,12 +335,13 @@ class ResultsManager(object):
         chain, resId= chainId_resId.split("_")
         chainIds.append(chain)
         resIds.append(resId)
+
         scores.append(resultsOneProt[ chainId_resId ])
         if chainId_resId in residuesAtInterface:
           categ.append(trueCategLabel)
         else:
           categ.append(falseCategLabel )
-          
+
       results= pd.DataFrame()
       results["chainId"]= chainIds
       results["resId"]= resIds
@@ -284,14 +357,14 @@ class ResultsManager(object):
     '''
     Writes both pairwise and binding-sites results to disk
     
-    @param outName: str.  The name that pairwise results file will have. Ligand binding-site results
+    :param outName: str.  The name that pairwise results file will have. Ligand binding-site results
                           name will be outName+'lig' and Receptor binding-site results
                           name will be outName+'rec'
-    @param removeCateg: boolean.  If removeCateg==False files for DataFrames will contain categ column,
+    :param removeCateg: boolean.  If removeCateg==False files for DataFrames will contain categ column,
 
     '''
     results= self.resultsPairs.copy()
-    with open(outName,"w") as f:
+    with gzip.open(outName.replace(".gz","")+".gz","w") as f:
       if not self.performance_summary is None:
         f.write("#auc= %2.5f\n"%(self.performance_summary["auc_pair"]))
       if removeCateg:
@@ -308,7 +381,7 @@ class ResultsManager(object):
     Results will be summarized in a pandas.DataFrame, which is stored at the
     attribute self.performance_summary and also returns it
     
-    @param return self.performance_summary: pandas.DataFrame. summary of scores evaluation which have the 
+    :param return self.performance_summary: pandas.DataFrame. summary of scores evaluation which have the
                                             following columns:
                                       pdb  auc_pair  prec_50  reca_50  prec_100  reca_100  prec_500  reca_500   auc_l  prec_l
                                       reca_l   mcc_l   auc_r  prec_r  reca_r   mcc_r
@@ -336,7 +409,7 @@ class ResultsManager(object):
     '''
     returns the attribute self.performance_summary. If self.performance_summary is None, computes it first
     
-    @param return self.performance_summary: pandas.DataFrame. summary of scores evaluation which have the 
+    :param return self.performance_summary: pandas.DataFrame. summary of scores evaluation which have the
                                             following columns:
                                       pdb  auc_pair  prec_50  reca_50  prec_100  reca_100  prec_500  reca_500   auc_l  prec_l
                                       reca_l   mcc_l   auc_r  prec_r  reca_r   mcc_r
@@ -353,17 +426,19 @@ class ResultsManager(object):
 
     
   @staticmethod
-  def loadExistingResults(fname):
+  def loadExistingResults(fname, averageLRscores=False):
     '''
     loads an existing pairwise result file (tabular data) with name fname
-    @param fname: str. The name of the already computed result
-    @return prevResults: ResultsManager(). An instance of ResultsManager with the previous
+    :param fname: str. The name of the already computed result
+    :return prevResults: ResultsManager(). An instance of ResultsManager with the previous
                          results loaded
     '''
+
     prefix= (os.path.split(fname)[-1]).split(".")[0]
-    result= pd.read_table(fname, sep='\s+', comment="#", dtype={"structResIdL":str, "structResIdR":str,
+    result= pd.read_table(fname, sep='\s+', comment="#", dtype={"resIdL":str, "resIdR":str,
                                                                 "chainIdL":str, "chainIdR":str})
-    ids= result[["chainIdL", "structResIdL", "resNameL", "chainIdR", "structResIdR", "resNameR", "categ"]]
+    ids= result[["chainIdL", "resIdL", "resNameL", "chainIdR", "resIdR", "resNameR", "categ"]]
     prob_predictions= result["prediction"].values
-    return ResultsManager(prefix, prob_predictions, prob_predictions, ids )
+    return ResultsManager(prefix, prob_predictions, prob_predictionsTrans=None, ids=ids, averageLRscores=averageLRscores,
+                          doAverageScore=False)
 

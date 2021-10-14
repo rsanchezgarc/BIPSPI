@@ -10,12 +10,19 @@ import joblib
 '''
 input is a json {"thr": [thr0, thr1, ...], "prec":[precision0, precision1, ...] }
 
-python evaluation/thr_vs_precision.py ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results/thr_2_prec_b5_seq.json 
+json is computed using evaluation/getPrecsAt_diffThr.py
+
+python evaluation/thr_vs_precision.py ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results/thr_2_pretc_b5_seq.json
 
 '''
-if len(sys.argv)!=2:
-  jsonFname= "thr_2_prec_seq.json"
+DO_PLOT=True
+if len(sys.argv)<2:
+  raise ValueError("Error, 1 argument should be provided")
 else:
+  if len(sys.argv)==3:
+    save_isotonic_modelFname=  os.path.expanduser( sys.argv[2])
+  else:
+    save_isotonic_modelFname= None
   jsonFname= os.path.expanduser( sys.argv[1])
 
 with open(jsonFname) as f:
@@ -72,7 +79,8 @@ def isotonicFit(thr, prec, maxThr= 999):
   
   isoReg= IsotonicRegression(y_min=0, y_max=1)
   isoReg.fit(thr, prec)
-#  joblib.dump(isoReg, "/home/rsanchez/Tesis/rriPredMethod/pyCode/webApp/rriPredWeb/media/scoreToPrecModel/mixed.isotonic.joblib")
+  if save_isotonic_modelFname:
+    joblib.dump(isoReg, save_isotonic_modelFname)
   return lambda x: isoReg.predict(x) , "isotonic"
   
 #fitFun, formulaStr= logFit(thr, prec)
@@ -97,17 +105,19 @@ prec score
 0.6  0.58794
 0.7  2.39698
 '''
-fig, ax = plt.subplots()
 
-ax.plot(thr, prec, 'c.', label='precision data')
-ax.plot(thr,  fitFun_1(thr), 'b--', label=formulaStr_1+" fit")
-ax.plot(thr,  fitFun_2(thr), 'r--', label=formulaStr_2+" fit")
-ax.set_xlabel("score threshold")
-ax.set_ylabel("precision")
-ax.set_title("DBv5 scores seq model")
-legend = ax.legend(loc='lower right', shadow=True)
+if DO_PLOT:
+  fig, ax = plt.subplots()
 
-#plt.savefig("/home/rsanchez/Tesis/papers/myPapers/2018/rriInteraction/major1Images/scores_vs_precision_bothFit_seq.png", 
-#            format="png", dpi=350)
-plt.show()
+  ax.plot(thr, prec, 'c.', label='precision data')
+  ax.plot(thr,  fitFun_1(thr), 'b--', label=formulaStr_1+" fit")
+  ax.plot(thr,  fitFun_2(thr), 'r--', label=formulaStr_2+" fit")
+  ax.set_xlabel("score threshold")
+  ax.set_ylabel("precision")
+  ax.set_title("DBv5 scores seq model")
+  legend = ax.legend(loc='lower right', shadow=True)
+
+  #plt.savefig("/home/rsanchez/Tesis/papers/myPapers/2018/rriInteraction/major1Images/scores_vs_precision_bothFit_seq.png",
+  #            format="png", dpi=350)
+  plt.show()
 

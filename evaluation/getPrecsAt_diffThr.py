@@ -2,13 +2,13 @@ import sys, os
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score, matthews_corrcoef
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import json
 
-#DO_SEQ_AVERAGING=True
+EVALUATE_CAPITAL_ONLY=True
+
 DO_SEQ_AVERAGING=False
 
-#BINDING_CMAPS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/ppdockingBenchData/newCodeData/computedFeatures/common/contactMapsBinding"
+#BINDING_CMAPS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/bench5Data/newCodeData/computedFeatures/common/contactMapsBinding"
 BINDING_CMAPS_PATH=None # if None, contact maps contained in the results file will be used, otherwise, new contacts will be added from the files in the path
 
 def averageScores(scoresDf):
@@ -28,7 +28,7 @@ def averageScores(scoresDf):
   
 def loadResults( resultsPath, fnameResults, cMapsPath=BINDING_CMAPS_PATH):
   prefix= fnameResults.split("_")[0].split(".")[0]
-  if fnameResults.endswith(".lig"):
+  if ".lig" in fnameResults:
     chainType="l"
   else:
     chainType="r"
@@ -37,11 +37,10 @@ def loadResults( resultsPath, fnameResults, cMapsPath=BINDING_CMAPS_PATH):
   if not cMapsPath is None:
     newCmapSet=set([])
     for fname in os.listdir(cMapsPath):
-      #print(fnameResults, fname, prefix, os.path.join(cMapsPath,fname))
       if ((chainType=="l" and "_l_" in fname) or (chainType=="r" and "_r_" in fname)) and fname.startswith(prefix):
         df= pd.read_table(os.path.join(cMapsPath,fname),sep='\s+', header='infer', comment="#", 
-                          dtype= {"chainIdL":str, "chainIdR":str, "structResIdL":str, "structResIdR":str,
-                                        "chainId":str, "structResId":str,  "resId":str})
+                          dtype= {"chainIdL":str, "chainIdR":str, "resIdL":str, "resIdR":str,
+                                        "chainId":str, "resId":str,  "resId":str})
         for i in range(df.shape[0]):
           chainId, resId, categ= df.iloc[i,:]
           if categ==1:
@@ -51,7 +50,7 @@ def loadResults( resultsPath, fnameResults, cMapsPath=BINDING_CMAPS_PATH):
   return scoresDf
   
 def get_single_chain_statistics(prefix, labels, scores):
-  EVAL_PAIRS_AT= [ 2**3, 2**4, 2**5]
+  EVAL_PAIRS_AT= [ 2**3, 2**4]
   precisionAt=[]
   recallAt=[]
   scores= np.array(scores)
@@ -81,13 +80,14 @@ def get_single_chain_statistics(prefix, labels, scores):
     summary["reca_%d"%evalPoint]= [recallAt]
   return summary
   
-def getRecallAtPrec(resultsPath, targetPrec=0.666, useSeqAvera= DO_SEQ_AVERAGING):
+def getRecallAtPrec(resultsPath, targetPrec=0.666, jsonFname=None, useSeqAvera= DO_SEQ_AVERAGING):
   allScores=[]
   allLabels=[]
   perComplexSummaries=[]
   for fname in sorted(os.listdir(resultsPath)):
-    #print(fname)
-    if fname.endswith(".rec") or fname.endswith(".lig"):
+    if EVALUATE_CAPITAL_ONLY and fname[1:4].islower(): continue
+    print(fname)
+    if ".rec" in fname or ".lig" in fname:
       results= loadResults( resultsPath, fname)
       if results is None: continue
       if useSeqAvera:
@@ -113,8 +113,9 @@ def getRecallAtPrec(resultsPath, targetPrec=0.666, useSeqAvera= DO_SEQ_AVERAGING
   allScores= np.array(allScores)
   allScoresUnique= np.unique(np.round(allScores, decimals=4))
   indices= np.argsort(allScoresUnique)[1:-1]
-#  plt.hist(allScoresUnique[:-2], bins=50)
-#  plt.show()
+  # import matplotlib.pyplot as plt
+  #  plt.hist(allScoresUnique[:-2], bins=50)
+  #  plt.show()
   bestThr=-1
   bestMcc= 0
   bestPrec= -1
@@ -134,8 +135,9 @@ def getRecallAtPrec(resultsPath, targetPrec=0.666, useSeqAvera= DO_SEQ_AVERAGING
       bestPrec= precision_score(allLabels, binaryScores)
       bestRec= recall_score(allLabels, binaryScores)
   print(thr_2_prec)
-  with open("thr_2_prec.json","w") as f:
-    json.dump(thr_2_prec, f)
+  if jsonFname:
+    with open(jsonFname,"w") as f:
+      json.dump(thr_2_prec, f)
   print(summary.to_string(index=False))
   print("roc auc(mixed/mean): %f/%f Thr: %f mcc: %f prec: %f rec: %f"%(roc_auc,summary.iloc[-1,1], bestThr, bestMcc, bestPrec, bestRec))
   return bestThr
@@ -145,7 +147,7 @@ def countIfAboveThr(bestThr, resultsPath):
   numAbove=0
   for fname in sorted(os.listdir(resultsPath)):
     #print(fname)
-    if fname.endswith(".rec") or fname.endswith(".lig"):
+    if ".rec" in fname or ".lig" in fname:
       results= loadResults( resultsPath, fname)
       totalNum+=1
       if results is None: 
@@ -155,11 +157,17 @@ def countIfAboveThr(bestThr, resultsPath):
       if np.sum(scores>=bestThr):
         numAbove+=1
   print("Above thr %d / %d "%(numAbove,totalNum))
+  
 if __name__=="__main__":
-#  resultsPath= "/home/rsanchez/Tesis/rriPredMethod/data/ppdockingBenchData/newCodeData/results/struct"
-  resultsPath= "/home/rsanchez/Tesis/rriPredMethod/data/ppdockingBenchData/newCodeData/results/struct_2"
-  if len(sys.argv)==2:
-    resultsPath= sys.argv[1]
-  bestThr= getRecallAtPrec(resultsPath)
+  '''
+   python evaluation/getPrecsAt_diffThr.py ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results/mixed_2/ ~/Tesis/rriPredMethod/data/bench5Data/newCodeData/results/thr_2_prec_b5_mixed_2.json
+
+  '''
+  if len(sys.argv)==3:
+    resultsPath= os.path.expanduser(sys.argv[1])
+    jsonFname= os.path.expanduser(sys.argv[2])
+  else:
+    raise ValueError("Bad arguments.")
+  bestThr= getRecallAtPrec(resultsPath, jsonFname=jsonFname)
   countIfAboveThr(bestThr, resultsPath)
   

@@ -1,33 +1,45 @@
+'''
+Used to compare to other results pair predictions it they have different contact map criterium
+'''
+
 import os, sys
 import pandas as pd
 
-RESULTS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/sppider/results/struct_2"
-ALTERNATIVE_CMAPS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/sppider/computedFeatures/common/contactMaps_homoFixed"
-NEW_RESULTS_PATH="/home/rsanchez/Tesis/rriPredMethod/data/sppider/results/struct_2_homoFixed"
 
-def fixOneFname(fname, inpath= RESULTS_PATH, cmapspath=ALTERNATIVE_CMAPS_PATH, outpath=NEW_RESULTS_PATH):
+def fixOneFname(fname, inpath, cmapspath, outpath):
+
   prefix= fname.split(".")[0]
   full_fname_in= os.path.join(inpath, fname)
   full_fname_out= os.path.join(outpath, fname)
-  data= pd.read_table(full_fname_in, sep='\s+', comment="#", dtype={"structResIdL":str, "structResIdR":str,
-                                                            "chainIdL":str, "chainIdR":str})
-  full_fname_cmap= os.path.join(cmapspath, prefix+".cMap.tab")
-  cmap= pd.read_table(full_fname_cmap, sep='\s+', comment="#", dtype={"structResIdL":str, "structResIdR":str,
-                                                            "chainIdL":str, "chainIdR":str})
-  data_fixed= data.merge(cmap, on=["chainIdL", "structResIdL", "resNameL", "chainIdR", "structResIdR", "resNameR"])
-#  print(data_fixed["categ_x"].equals(data_fixed["categ_y"]))
-  data_fixed["categ_x"]= data_fixed["categ_y"]
-  data_fixed= data_fixed.drop(["categ_y"], axis=1)
-  data_fixed.rename(index=str, columns={"categ_x": "categ"} , inplace=True)
-  data_fixed.to_csv(full_fname_out, index=False, sep=" ")
 
-def main():
-  for fname in os.listdir(RESULTS_PATH):
-    if fname.endswith(".tab"):
+  data= pd.read_table(full_fname_in, sep='\s+', comment="#", dtype={"resIdL":str, "resIdR":str,
+                                                            "chainIdL":str, "chainIdR":str})
+
+  data.rename(index=str, columns={"structResIdL": "resIdL", "structResIdR": "resIdR"} , inplace=True)
+  data= data.astype({colname: str for colname in data.columns[:6]})
+  full_fname_cmap= os.path.join(cmapspath, prefix+"_.cMap.gz")
+
+  cmap= pd.read_table(full_fname_cmap, sep='\s+', comment="#", dtype={"resIdL":str, "resIdR":str,
+                                                            "chainIdL":str, "chainIdR":str})
+
+  data_fixed= data.merge(cmap, on=["chainIdL", "resIdL", "resNameL", "chainIdR", "resIdR", "resNameR"])
+
+  if "categ_x" in data_fixed:
+    data_fixed["categ_x"]= data_fixed["categ_y"]
+    data_fixed= data_fixed.drop(["categ_y"], axis=1)
+    data_fixed.rename(index=str, columns={"categ_x": "categ"} , inplace=True)
+  else:
+    data_fixed= data_fixed[ ["chainIdL", "resIdL", "resNameL", "chainIdR", "resIdR", "resNameR", "categ", "prediction"] ]
+
+  data_fixed.to_csv(full_fname_out, index=False, sep=" ", compression="gzip" if fname.endswith("gz") else None )
+
+def main(inPath, cmapPath, resultsPath):
+  for fname in os.listdir(inPath):
+    if fname.endswith(".tab") or fname.endswith(".tab.gz"):
       print(fname)
-      fixOneFname(fname)
-#      raw_input("press enter for next pdb result")
+      fixOneFname(fname, inPath, cmapPath, resultsPath)
     
 if __name__=="__main__":
-  main()
+  inPath, cmapPath, resultsPath = sys.argv[1:]
+  main( inPath, cmapPath, resultsPath )
   
