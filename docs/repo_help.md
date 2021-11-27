@@ -201,8 +201,8 @@ NOTE: tmux or screen are recommended when training the model to prevent network 
   ```
   
   
-BISPI v2 allows to train using PDB-PDB, PDB-Sequence or Sequence sequence. Edit the config file `modelType` field to select
-the model you want to train.
+BISPI v2 allows to train using PDB-PDB, PDB-Sequence or Sequence-Sequence. Edit the config file `modelType` field to select
+the model you want to train (struct/mixed/seq).
 
 Lastly, if you don't want to edit the config  file, you can modify any of the options just by adding
 to the command the `--OPTION VALUE` flag. E.g.:
@@ -295,8 +295,8 @@ python predictComplexes.py -i ./docs/trainingPDBsExample --wdir  path/where/pred
 
 ```
 
-Additionally, instead a direectory with files, you can provide a csv file with pdbIds and chain Ids to be used as input. 
-BIPSPI will automatically download then and execute the struct mode. Only one chain per pdbId is superted at this moment.
+Additionally, instead a directory with files, you can provide a csv file with pdbIds and chain Ids to be used as input. 
+BIPSPI will automatically download then and execute the struct mode. Only one chain per pdbId is suported at this moment.
 See [predict_from_pdbIds.csv](../docs/predict_from_pdbIds.csv) for an example
 
 ```
