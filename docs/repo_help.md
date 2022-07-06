@@ -53,7 +53,7 @@
 3) Install Python dependencies using conda.
 
 ```
-conda env create -f  bipspiV2_environ.yml
+conda env create -f  bipspi_plus_environ.yml
 ```
 
 
