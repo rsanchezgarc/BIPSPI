@@ -1,6 +1,6 @@
 # BIPSPI+: Enhancing partner-specific binding site prediction with better data
 
-[BIPSPI](http://bipspi.cnb.csic.es/xgbPredApp/) (xgBoost Interface Prediction of Specific Partner Interactions) is a partner specific 
+[BIPSPI](https://bipspi.cnb.csic.es/) (xgBoost Interface Prediction of Specific Partner Interactions) is a partner specific 
 binding site predictor that employs the XGBoost algorithm. This new version, BIPSPI+, has been trained on
 newer and larger datasets compiled from the PDB, severely improving its performance.
 <br>BIPSPI+ can be employed to predict partner-specific binding sites given two atomic models, 
